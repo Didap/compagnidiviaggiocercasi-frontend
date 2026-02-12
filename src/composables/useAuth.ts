@@ -23,7 +23,11 @@ const apiUrl = import.meta.env.VITE_API_URL
 export function useAuth() {
     const isAuthenticated = computed(() => !!token.value)
 
-    const isAdmin = computed(() => user.value?.role?.name === 'Admin')
+    const isAdmin = computed(() => {
+        const roleName = user.value?.role?.name?.toLowerCase()
+        const roleType = user.value?.role?.type?.toLowerCase()
+        return roleName === 'admin' || roleType === 'admin'
+    })
 
     const fullName = computed(() => {
         if (!user.value) return ''

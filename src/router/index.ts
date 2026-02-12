@@ -47,7 +47,9 @@ const router = createRouter({
           })
           if (!res.ok) return { name: 'login' }
           const user = await res.json()
-          if (user.role?.name !== 'Admin') return { name: 'home' }
+          const roleName = user.role?.name?.toLowerCase()
+          const roleType = user.role?.type?.toLowerCase()
+          if (roleName !== 'admin' && roleType !== 'admin') return { name: 'home' }
         } catch {
           return { name: 'home' }
         }

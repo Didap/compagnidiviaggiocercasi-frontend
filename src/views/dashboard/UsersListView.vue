@@ -3,9 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
-import Button from '@/components/ui/button/Button.vue'
-import Badge from '@/components/ui/badge/Badge.vue'
-import { Users, Trash2, Loader2, Shield, Mail } from 'lucide-vue-next'
+import { Users, Trash2, Loader2, Mail } from 'lucide-vue-next'
 
 const { token, user: currentUser } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -81,22 +79,10 @@ const deleteUser = async (user: any) => {
     }
 }
 
-const getRoleName = (user: any) => {
-    return user.role?.name || user.role?.data?.attributes?.name || '—'
-}
-
 const getRoleId = (user: any) => {
     return user.role?.id || user.role?.data?.id || null
 }
 
-const getRoleColor = (name: string) => {
-    switch (name) {
-        case 'Admin': return 'bg-red-50 text-red-600'
-        case 'Authenticated': return 'bg-blue-50 text-blue-600'
-        case 'Public': return 'bg-slate-100 text-slate-500'
-        default: return 'bg-slate-100 text-slate-500'
-    }
-}
 
 const formatDate = (d: string) => {
     if (!d) return ''

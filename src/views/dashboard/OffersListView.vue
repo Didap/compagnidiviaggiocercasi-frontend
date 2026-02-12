@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import {
-    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar, Users as UsersIcon,
+    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar,
 } from 'lucide-vue-next'
 
 const { token } = useAuth()
