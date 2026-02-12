@@ -13,10 +13,12 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 18 68% 48%; /* #cf5827 converted to HSL approx */
+    --primary: 18 68% 48%;
+    /* #cf5827 converted to HSL approx */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 187 33% 41%; /* #45828a converted to HSL approx */
+    --secondary: 187 33% 41%;
+    /* #45828a converted to HSL approx */
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
@@ -70,6 +72,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -77,4 +80,24 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@layer utilities {
+  .scrollbar-tiny::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-tiny::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .scrollbar-tiny::-webkit-scrollbar-thumb {
+    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+  }
+
+  .scrollbar-tiny {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.slate.200') transparent;
+  }
 }

@@ -10,21 +10,23 @@ import Button from '@/components/ui/button/Button.vue'
       <img
         src="@/assets/globe.png"
         alt="Mondo"
-        class="absolute top-24 left-[5%] md:left-[10%] w-20 md:w-28 h-auto opacity-60 mix-blend-multiply animate-rotate-slow"
+        class="absolute top-28 left-[5%] sm:left-[20%] sm:top-80 w-14 sm:w-28 h-auto opacity-60 mix-blend-multiply animate-rotate-slow"
       />
 
       <!-- Airplane & Passport (Top Right - Near the line start) -->
       <img
         src="@/assets/airplane-passport.png"
         alt="Viaggio"
-        class="absolute top-10 right-[10%] w-32 md:w-40 h-auto animate-float drop-shadow-xl z-20 opacity-90 -rotate-45"
+        style="rotate: 45deg"
+        class="absolute top-44 right-[5%] sm:top-40 sm:right-[25%] w-24 sm:w-40 h-auto animate-float drop-shadow-xl z-20 opacity-90"
       />
 
       <!-- Airplane & Passport (Bottom Left - Near the line start) -->
       <img
         src="@/assets/airplane-passport.png"
         alt="Viaggio"
-        class="absolute bottom-10 left-[10%] w-28 md:w-36 h-auto animate-float drop-shadow-xl z-20 opacity-90 transform rotate-45"
+        style="rotate: -25deg"
+        class="absolute bottom-20 left-[10%] sm:bottom-10 sm:left-[30%] w-24 sm:w-36 h-auto animate-float drop-shadow-xl z-20 opacity-90 transform rotate-45"
       />
     </div>
 
@@ -42,6 +44,7 @@ import Button from '@/components/ui/button/Button.vue'
       <img
         src="@/assets/macchia.png"
         alt=""
+        style="rotate: 180deg"
         class="absolute -bottom-32 -right-32 w-[700px] h-auto opacity-40 mix-blend-multiply animate-pulse-slow -scale-x-100"
       />
 
@@ -49,14 +52,14 @@ import Button from '@/components/ui/button/Button.vue'
       <img
         src="@/assets/line.png"
         alt=""
-        class="absolute bottom-0 left-0 w-[25%] max-w-[300px] h-auto object-contain opacity-25 animate-fade-in-path"
+        class="absolute bottom-0 left-0 w-[25%] max-w-[300px] h-auto object-contain opacity-25 animate-fade-in-path md:block hidden"
       />
 
       <!-- Path Line Right -->
       <img
         src="@/assets/line.png"
         alt=""
-        class="absolute top-0 right-0 w-[25%] max-w-[300px] h-auto object-contain opacity-25 transform rotate-180 animate-fade-in-path"
+        class="absolute top-0 right-0 w-[25%] max-w-[300px] h-auto object-contain opacity-25 transform rotate-180 animate-fade-in-path md:block hidden"
       />
 
     </div>
@@ -92,6 +95,18 @@ import Button from '@/components/ui/button/Button.vue'
           </Button>
         </div>
       </div>
+    </div>
+    <!-- Bottom Divider -->
+    <div class="absolute bottom-0 left-0 w-full overflow-hidden leading-[0] z-40 transform translate-y-px">
+        <svg 
+            data-name="Layer 1" 
+            xmlns="http://www.w3.org/2000/svg" 
+            viewBox="0 0 1200 120" 
+            preserveAspectRatio="none" 
+            class="relative block w-[calc(100%+1.3px)] h-[60px] md:h-[120px]"
+        >
+            <path d="M1200 120L0 120 0 0z" class="fill-white"></path>
+        </svg>
     </div>
   </section>
 </template>
