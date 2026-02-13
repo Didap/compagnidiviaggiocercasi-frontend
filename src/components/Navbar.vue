@@ -1,3 +1,4 @@
+```html
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -51,58 +52,58 @@ onUnmounted(() => {
 
       <!-- Desktop Menu -->
       <div class="hidden md:flex items-center gap-8">
-        <a href="#"
+        <RouterLink to="/destinazioni"
           :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
           Destinazioni
-        </a>
-        <a href="#"
+        </RouterLink>
+        <RouterLink to="/come-funziona"
           :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
           Come Funziona
-        </a>
-        <a href="#"
+        </RouterLink>
+        <RouterLink to="/chi-siamo"
           :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
           Chi Siamo
-        </a>
-        <a href="#"
+        </RouterLink>
+        <RouterLink to="/blog"
           :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
           Blog
-        </a>
-        <!-- Authenticated -->
-        <div v-if="isAuthenticated" class="flex items-center gap-3">
-          <RouterLink v-if="isAdmin" to="/dashboard">
-            <Button variant="outline"
-              class="rounded-full px-5 border-primary/30 text-primary hover:bg-primary/5 transition-all gap-2">
-              <LayoutDashboard class="w-4 h-4" />
-              <span class="font-medium text-sm">Dashboard</span>
-            </Button>
-          </RouterLink>
-          <RouterLink to="/profilo" class="flex items-center gap-2 text-secondary hover:text-primary transition-colors">
-            <Button variant="outline"
-              class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">
-              <UserCircle class="w-5 h-5" />
-              <span class="font-medium text-sm">{{ fullName }}</span>
-            </Button>
-          </RouterLink>
-          <Button @click="logout"
-            class="rounded-full px-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" title="Esci">
-            <LogOut class="w-4 h-4" />Esci
+        </RouterLink>
+      </div>
+      <!-- Authenticated -->
+      <div v-if="isAuthenticated" class="flex items-center gap-3">
+        <RouterLink v-if="isAdmin" to="/dashboard">
+          <Button variant="outline"
+            class="rounded-full px-5 border-primary/30 text-primary hover:bg-primary/5 transition-all gap-2">
+            <LayoutDashboard class="w-4 h-4" />
+            <span class="font-medium text-sm">Dashboard</span>
           </Button>
-        </div>
-        <!-- Not Authenticated -->
-        <div v-else class="flex items-center gap-3">
-          <RouterLink to="/accedi">
-            <Button variant="outline"
-              class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">
-              Accedi
-            </Button>
-          </RouterLink>
-          <RouterLink to="/registrati">
-            <Button variant="default"
-              class="rounded-full px-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
-              Registrati
-            </Button>
-          </RouterLink>
-        </div>
+        </RouterLink>
+        <RouterLink to="/profilo" class="flex items-center gap-2 text-secondary hover:text-primary transition-colors">
+          <Button variant="outline"
+            class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">
+            <UserCircle class="w-5 h-5" />
+            <span class="font-medium text-sm">{{ fullName }}</span>
+          </Button>
+        </RouterLink>
+        <Button @click="logout"
+          class="rounded-full px-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5" title="Esci">
+          <LogOut class="w-4 h-4" />Esci
+        </Button>
+      </div>
+      <!-- Not Authenticated -->
+      <div v-else class="flex items-center gap-3">
+        <RouterLink to="/accedi">
+          <Button variant="outline"
+            class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">
+            Accedi
+          </Button>
+        </RouterLink>
+        <RouterLink to="/registrati">
+          <Button variant="default"
+            class="rounded-full px-6 shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5">
+            Registrati
+          </Button>
+        </RouterLink>
       </div>
 
       <!-- Mobile Menu Button -->
@@ -135,22 +136,26 @@ onUnmounted(() => {
 
             <!-- Links -->
             <div class="flex-grow overflow-y-auto py-8 px-6 space-y-2">
-              <a href="#"
-                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50">
+              <RouterLink to="/destinazioni"
+                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
+                @click="isMobileMenuOpen = false">
                 Destinazioni
-              </a>
-              <a href="#"
-                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50">
+              </RouterLink>
+              <RouterLink to="/come-funziona"
+                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
+                @click="isMobileMenuOpen = false">
                 Come Funziona
-              </a>
-              <a href="#"
-                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50">
+              </RouterLink>
+              <RouterLink to="/chi-siamo"
+                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
+                @click="isMobileMenuOpen = false">
                 Chi Siamo
-              </a>
-              <a href="#"
-                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50">
+              </RouterLink>
+              <RouterLink to="/blog"
+                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
+                @click="isMobileMenuOpen = false">
                 Blog
-              </a>
+              </RouterLink>
             </div>
 
             <!-- Bottom Auth Section -->

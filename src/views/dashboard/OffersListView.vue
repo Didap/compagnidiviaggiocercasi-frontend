@@ -29,10 +29,11 @@ const form = ref({
     startDate: '',
     endDate: '',
     maxParticipants: '',
+    occupiedSeats: '0',
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '' }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0' }
     editingId.value = null
     formError.value = null
 }
@@ -51,6 +52,7 @@ const openEdit = (offer: any) => {
         startDate: offer.startDate || '',
         endDate: offer.endDate || '',
         maxParticipants: String(offer.maxParticipants || ''),
+        occupiedSeats: String(offer.occupiedSeats || '0'),
     }
     formError.value = null
     showForm.value = true
@@ -95,6 +97,7 @@ const saveOffer = async () => {
                 startDate: form.value.startDate,
                 endDate: form.value.endDate,
                 maxParticipants: parseInt(form.value.maxParticipants),
+                occupiedSeats: parseInt(form.value.occupiedSeats) || 0,
             },
         }
 
@@ -146,6 +149,10 @@ const getTripTitle = (offer: any) => {
 }
 
 const getParticipantsCount = (offer: any) => {
+    // Use occupiedSeats field if available, otherwise count participants
+    if (offer.occupiedSeats !== undefined && offer.occupiedSeats !== null) {
+        return offer.occupiedSeats
+    }
     const p = offer.participants
     if (!p) return 0
     if (Array.isArray(p)) return p.length
@@ -233,12 +240,22 @@ onMounted(fetchData)
                                         class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                                 </div>
                             </div>
-                            <div>
-                                <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max Partecipanti
-                                    *</label>
-                                <input v-model="form.maxParticipants" type="number"
-                                    class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                    placeholder="20" />
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max
+                                        Partecipanti
+                                        *</label>
+                                    <input v-model="form.maxParticipants" type="number"
+                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        placeholder="20" />
+                                </div>
+                                <div>
+                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Posti
+                                        Occupati</label>
+                                    <input v-model="form.occupiedSeats" type="number"
+                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                        placeholder="0" />
+                                </div>
                             </div>
                             <p v-if="formError" class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
                                 {{ formError }}</p>
@@ -315,7 +332,7 @@ onMounted(fetchData)
                             <td class="py-4 px-4 text-center hidden sm:table-cell">
                                 <Badge
                                     class="bg-secondary/10 text-secondary border-none font-bold hover:bg-secondary/10 cursor-default">
-                                    {{ getParticipantsCount(offer) }}/{{ offer.maxParticipants }}
+                                    {{ getParticipantsCount(offer) }} / {{ offer.maxParticipants || '—' }}
                                 </Badge>
                             </td>
                             <td class="py-4 px-6">

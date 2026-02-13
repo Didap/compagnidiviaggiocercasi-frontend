@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
@@ -9,6 +9,7 @@ import Label from '@/components/ui/label/Label.vue'
 import DateOfBirthPicker from '@/components/ui/date-picker/DateOfBirthPicker.vue'
 import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-vue-next'
 
+const route = useRoute()
 const router = useRouter()
 const { register, loading, error } = useAuth()
 
@@ -49,7 +50,8 @@ const handleSubmit = async () => {
       phone: form.value.phone || undefined,
       birthday: form.value.birthday || undefined,
     })
-    router.push('/')
+    const redirect = route.query.redirect as string
+    router.push(redirect || '/')
   } catch {
     // error is handled by useAuth
   }

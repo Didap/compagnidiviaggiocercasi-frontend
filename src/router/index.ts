@@ -15,9 +15,34 @@ const router = createRouter({
       component: () => import('../views/TripDetailView.vue'),
     },
     {
+      path: '/destinazioni',
+      name: 'destinations',
+      component: () => import('../views/DestinationsView.vue'),
+    },
+    {
+      path: '/prenota/:offerId',
+      name: 'booking',
+      component: () => import('../views/BookingView.vue'),
+    },
+    {
       path: '/accedi',
       name: 'login',
       component: () => import('../views/LoginView.vue'),
+    },
+    {
+      path: '/come-funziona',
+      name: 'how-it-works',
+      component: () => import('../views/HowItWorksView.vue'),
+    },
+    {
+      path: '/chi-siamo',
+      name: 'about',
+      component: () => import('../views/AboutView.vue'),
+    },
+    {
+      path: '/blog',
+      name: 'blog',
+      component: () => import('../views/BlogView.vue'),
     },
     {
       path: '/registrati',
@@ -38,19 +63,40 @@ const router = createRouter({
       component: () => import('../views/dashboard/DashboardLayout.vue'),
       beforeEnter: async () => {
         const token = localStorage.getItem('jwt')
-        if (!token) return { name: 'login' }
-        // Check admin role via API
+        if (!token) {
+          console.warn('[Router] No token found, redirecting to login')
+          return { name: 'login' }
+        }
+
         try {
-          const apiUrl = import.meta.env.VITE_API_URL
-          const res = await fetch(`${apiUrl}/api/users/me?populate=role`, {
+          const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:1337'
+          console.log('[Router] Checking admin role at:', apiUrl)
+
+          const res = await fetch(`${apiUrl}/api/users/me?populate=*`, {
             headers: { Authorization: `Bearer ${token}` },
           })
-          if (!res.ok) return { name: 'login' }
-          const user = await res.json()
-          const roleName = user.role?.name?.toLowerCase()
-          const roleType = user.role?.type?.toLowerCase()
-          if (roleName !== 'admin' && roleType !== 'admin') return { name: 'home' }
-        } catch {
+
+          if (!res.ok) {
+            console.error('[Router] User check failed:', res.status)
+            return { name: 'login' }
+          }
+
+          const userData = await res.json()
+          console.log('[Router] User data received:', userData)
+
+          const roleName = userData.role?.name?.toLowerCase()
+          const roleType = userData.role?.type?.toLowerCase()
+
+          console.log('[Router] Role info:', { roleName, roleType })
+
+          if (roleName === 'admin' || roleType === 'admin') {
+            return true
+          }
+
+          console.warn('[Router] Access denied: User is not an admin')
+          return { name: 'home' }
+        } catch (err) {
+          console.error('[Router] Error in admin guard:', err)
           return { name: 'home' }
         }
       },

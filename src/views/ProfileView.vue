@@ -23,6 +23,9 @@ import {
     Save,
     Loader2,
     User as UserIcon,
+    CheckCircle2,
+    Clock,
+    XCircle,
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 
@@ -30,6 +33,7 @@ const router = useRouter()
 const { user, fullName, fetchMe, logout, isAuthenticated, token } = useAuth()
 
 const trips = ref<any[]>([])
+const myBookings = ref<any[]>([])
 const loadingTrips = ref(true)
 const lightboxOpen = ref(false)
 const lightboxIndex = ref(0)
@@ -53,21 +57,31 @@ const fetchMyTrips = async () => {
     loadingTrips.value = true
     try {
         const response = await fetch(
-            `${apiUrl}/api/offers?filters[participants][id][$eq]=${user.value.id}&populate[trip][populate][image][fields]=url&populate[trip][populate][gallery][fields]=url&populate[trip][populate][offers][fields]=*`,
+            `${apiUrl}/api/bookings?filters[user][id][$eq]=${user.value.id}&populate[participants]=*&populate[offer][populate][trip][populate]=*`,
             { headers: { Authorization: `Bearer ${token.value}` } }
         )
         if (!response.ok) throw new Error('Errore nel caricamento viaggi')
         const data = await response.json()
-        const offerList = data.data || []
-        // Extract unique trips from offers
+        const bookingList = data.data || []
+        myBookings.value = bookingList
+        console.log('Bookings with participants:', bookingList)
+
+        // Extract unique trips from bookings
         const tripMap = new Map<string, any>()
-        for (const offer of offerList) {
-            const t = offer.attributes?.trip?.data || offer.trip
-            if (!t) continue
-            const tripData = t.attributes || t
-            const id = t.id || t.documentId || tripData.slug
+        for (const booking of bookingList) {
+            const b = booking.attributes || booking
+            const offer = b.offer?.data?.attributes || b.offer?.data || b.offer?.attributes || b.offer
+            if (!offer) continue
+
+            const trip = offer.trip?.data?.attributes || offer.trip?.data || offer.trip?.attributes || offer.trip
+            if (!trip) continue
+
+            const id = trip.slug || trip.documentId || (booking.id?.toString())
             if (id && !tripMap.has(id.toString())) {
-                tripMap.set(id.toString(), tripData)
+                tripMap.set(id.toString(), {
+                    ...trip,
+                    bookingStatus: b.status
+                })
             }
         }
         trips.value = Array.from(tripMap.values())
@@ -142,6 +156,13 @@ const getTripImageUrl = (trip: any) => {
         firstImage?.data?.attributes?.url ||
         firstImage?.data?.url
     return url ? `${apiUrl}${url}` : ''
+}
+
+// Helper: Get status label
+const getStatusLabel = (booking: any) => {
+    const status = booking.attributes?.status || booking.status
+    if (status === 'pending') return 'In attesa'
+    return status
 }
 
 // Lightbox
@@ -300,7 +321,7 @@ onMounted(async () => {
                                     class="w-full h-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                                     <span class="text-4xl md:text-5xl font-black text-white">{{
                                         initials
-                                    }}</span>
+                                        }}</span>
                                 </div>
                             </div>
                             <!-- Edit overlay -->
@@ -438,7 +459,112 @@ onMounted(async () => {
 
                     <!-- Right Column: Trips & Gallery -->
                     <div class="lg:col-span-2 space-y-10">
-                        <!-- My Trips -->
+                        <!-- My Bookings (Detailed) -->
+                        <div v-if="myBookings.length > 0">
+                            <h2 class="text-2xl font-bold text-slate-900 mb-6">Dettagli Prenotazioni</h2>
+                            <div class="space-y-6">
+                                <Card v-for="booking in myBookings" :key="booking.id"
+                                    class="rounded-3xl border-none shadow-sm overflow-hidden bg-white">
+                                    <div class="p-6 md:p-8">
+                                        <!-- Header: Trip and Status -->
+                                        <div class="flex flex-wrap items-start justify-between gap-4 mb-6">
+                                            <div>
+                                                <h3 class="text-xl font-black text-slate-900">
+                                                    {{
+                                                        (booking.attributes?.offer?.data?.attributes?.trip?.data?.attributes?.title
+                                                            || booking.offer?.trip?.title) }}
+                                                </h3>
+                                                <div class="flex items-center gap-2 mt-1 text-slate-500 font-medium">
+                                                    <MapPin class="w-4 h-4 text-primary" />
+                                                    <span>{{
+                                                        (booking.attributes?.offer?.data?.attributes?.trip?.data?.attributes?.destination
+                                                            || booking.offer?.trip?.destination) }}</span>
+                                                </div>
+                                            </div>
+
+                                            <Badge :class="{
+                                                'bg-amber-100 text-amber-700 hover:bg-amber-100': (booking.attributes?.status || booking.status) === 'pending',
+                                                'bg-green-100 text-green-700 hover:bg-green-100': (booking.attributes?.status || booking.status) === 'confirmed',
+                                                'bg-red-100 text-red-700 hover:bg-red-100': (booking.attributes?.status || booking.status) === 'cancelled'
+                                            }"
+                                                class="px-4 py-1.5 rounded-full border-none font-bold capitalize flex items-center gap-2">
+                                                <Clock
+                                                    v-if="(booking.attributes?.status || booking.status) === 'pending'"
+                                                    class="w-4 h-4" />
+                                                <CheckCircle2
+                                                    v-if="(booking.attributes?.status || booking.status) === 'confirmed'"
+                                                    class="w-4 h-4" />
+                                                <XCircle
+                                                    v-if="(booking.attributes?.status || booking.status) === 'cancelled'"
+                                                    class="w-4 h-4" />
+                                                {{ getStatusLabel(booking) }}
+                                            </Badge>
+                                        </div>
+
+                                        <div class="grid md:grid-cols-2 gap-8">
+                                            <!-- Participants -->
+                                            <div>
+                                                <h4
+                                                    class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
+                                                    Partecipanti</h4>
+                                                <div class="space-y-3">
+                                                    <div v-for="(p, i) in (booking.attributes?.participants || booking.participants)"
+                                                        :key="i"
+                                                        class="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl">
+                                                        <div
+                                                            class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-xs font-black text-primary shadow-sm border border-slate-100">
+                                                            {{ Number(i) + 1 }}
+                                                        </div>
+                                                        <span class="text-sm font-bold text-slate-700">{{ p.firstName }}
+                                                            {{ p.lastName }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Summary -->
+                                            <div class="bg-slate-50 p-6 rounded-3xl">
+                                                <h4
+                                                    class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
+                                                    Riepilogo</h4>
+                                                <div class="space-y-3">
+                                                    <div class="flex justify-between items-center text-sm">
+                                                        <span class="text-slate-500 font-medium">Totale Viaggio</span>
+                                                        <span class="font-black text-slate-900">{{
+                                                            (booking.attributes?.totalPrice || booking.totalPrice)
+                                                        }}€</span>
+                                                    </div>
+                                                    <div class="flex justify-between items-center text-sm">
+                                                        <span class="text-slate-500 font-medium">Acconto Versato</span>
+                                                        <span class="font-black text-primary">{{
+                                                            (booking.attributes?.depositPrice || booking.depositPrice)
+                                                        }}€</span>
+                                                    </div>
+                                                    <div class="pt-3 border-t border-slate-200 mt-3">
+                                                        <div class="flex items-center gap-2 text-xs text-slate-400">
+                                                            <Calendar class="w-3.5 h-3.5" />
+                                                            <span>Prenotato il {{ new Date(booking.attributes?.createdAt
+                                                                || booking.createdAt).toLocaleDateString('it-IT')
+                                                            }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div v-if="(booking.attributes?.notes || booking.notes)"
+                                            class="mt-6 p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                                            <p
+                                                class="text-xs font-black text-primary/60 uppercase tracking-widest mb-1">
+                                                Note</p>
+                                            <p class="text-sm text-slate-600 font-medium italic">"{{
+                                                (booking.attributes?.notes || booking.notes) }}"</p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            </div>
+                        </div>
+
+                        <!-- My Trips (Grid) -->
                         <div>
                             <div class="flex items-center justify-between mb-6">
                                 <h2 class="text-2xl font-bold text-slate-900">I Miei Viaggi</h2>
@@ -468,7 +594,7 @@ onMounted(async () => {
                                                     <MapPin class="w-3.5 h-3.5 text-white/80" />
                                                     <span class="text-xs font-bold text-white/90">{{
                                                         trip.destination
-                                                    }}</span>
+                                                        }}</span>
                                                 </div>
                                             </div>
                                         </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -23,6 +24,8 @@ import {
 } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
+const { isAuthenticated } = useAuth()
 const trip = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -153,6 +156,19 @@ const closeLightbox = () => { lightboxOpen.value = false }
 const nextImage = () => { lightboxIndex.value = (lightboxIndex.value + 1) % galleryUrls.value.length }
 const prevImage = () => { lightboxIndex.value = (lightboxIndex.value - 1 + galleryUrls.value.length) % galleryUrls.value.length }
 
+const handleBooking = (offerId: number | string) => {
+  console.log('[Booking] Initiating booking for offer:', offerId)
+  if (!offerId) {
+    console.error('[Booking] Missing offerId!')
+    return
+  }
+  if (!isAuthenticated.value) {
+    router.push({ name: 'login', query: { redirect: `/prenota/${offerId}` } })
+    return
+  }
+  router.push(`/prenota/${offerId}`)
+}
+
 onMounted(fetchTrip)
 </script>
 
@@ -181,10 +197,13 @@ onMounted(fetchTrip)
       <section class="relative h-[60vh] md:h-[70vh] overflow-hidden">
         <img :src="imageUrl" :alt="trip.title" class="w-full h-full object-cover" />
         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
-        <div class="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent pointer-events-none h-1/2"></div>
+        <div
+          class="absolute inset-0 bg-gradient-to-b from-black/90 via-black/50 to-transparent pointer-events-none h-1/2">
+        </div>
 
         <!-- Back Button -->
-        <RouterLink to="/" class="absolute top-32 left-6 md:left-12 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 hover:bg-white transition-colors z-10">
+        <RouterLink to="/"
+          class="absolute top-32 left-6 md:left-12 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 hover:bg-white transition-colors z-10">
           <ArrowLeft class="w-4 h-4 text-slate-700" />
           <span class="text-sm font-bold text-slate-700">Indietro</span>
         </RouterLink>
@@ -202,7 +221,8 @@ onMounted(fetchTrip)
                 <span class="text-sm font-bold text-slate-800">{{ averageRating }}</span>
                 <span class="text-xs text-slate-500">({{ reviewsList.length }})</span>
               </div>
-              <div v-if="offers.length > 1" class="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
+              <div v-if="offers.length > 1"
+                class="bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl flex items-center gap-1.5 shadow-sm">
                 <Tag class="w-4 h-4 text-primary" />
                 <span class="text-sm font-bold text-slate-800">{{ offers.length }} date disponibili</span>
               </div>
@@ -241,13 +261,16 @@ onMounted(fetchTrip)
                 <Users class="w-5 h-5 text-primary" />
                 <div class="flex flex-col">
                   <span class="text-[10px] text-slate-400 font-bold uppercase">Posti</span>
-                  <span class="text-sm font-bold text-slate-700">{{ getAvailableSeats(selectedOffer) }} / {{ selectedOffer.maxParticipants }} {{ getAvailableSeats(selectedOffer) === 1 ? 'posto disponibile' : 'posti disponibili' }}</span>
+                  <span class="text-sm font-bold text-slate-700">{{ getAvailableSeats(selectedOffer) }} / {{
+                    selectedOffer.maxParticipants }} {{ getAvailableSeats(selectedOffer) === 1 ? 'posto disponibile' :
+                      'posti disponibili' }}</span>
                 </div>
               </div>
             </div>
             <div class="flex items-center gap-4">
               <div class="flex flex-col text-right">
-                <span class="text-xs text-slate-400 font-bold uppercase">{{ offers.length > 1 ? 'A partire da' : 'Prezzo' }}</span>
+                <span class="text-xs text-slate-400 font-bold uppercase">{{ offers.length > 1 ? 'A partire da' :
+                  'Prezzo' }}</span>
                 <span class="text-2xl font-black text-primary">{{ cheapestPrice }}€</span>
               </div>
             </div>
@@ -265,11 +288,9 @@ onMounted(fetchTrip)
             <!-- Description -->
             <div>
               <h2 class="text-2xl font-bold text-slate-900 mb-6">Il Viaggio</h2>
-              <div
-                v-if="trip.description"
+              <div v-if="trip.description"
                 class="prose prose-slate max-w-none prose-headings:text-slate-900 prose-p:text-slate-600 prose-p:leading-relaxed"
-                v-html="trip.description"
-              ></div>
+                v-html="trip.description"></div>
               <p v-else class="text-slate-500 italic">Descrizione completa in arrivo...</p>
             </div>
 
@@ -277,15 +298,15 @@ onMounted(fetchTrip)
             <div v-if="galleryUrls.length > 0">
               <h2 class="text-2xl font-bold text-slate-900 mb-6">Galleria</h2>
               <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <div
-                  v-for="(url, index) in galleryUrls"
-                  :key="index"
+                <div v-for="(url, index) in galleryUrls" :key="index"
                   class="relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group"
-                  @click="openLightbox(Number(index))"
-                >
-                  <img :src="url" :alt="`Foto ${Number(index) + 1}`" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                    <div class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full p-3">
+                  @click="openLightbox(Number(index))">
+                  <img :src="url" :alt="`Foto ${Number(index) + 1}`"
+                    class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                  <div
+                    class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
+                    <div
+                      class="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 backdrop-blur-sm rounded-full p-3">
                       <ArrowRight class="w-5 h-5 text-slate-800" />
                     </div>
                   </div>
@@ -297,31 +318,23 @@ onMounted(fetchTrip)
             <div v-if="itinerary.length > 0">
               <h2 class="text-2xl font-bold text-slate-900 mb-6">Programma del Viaggio</h2>
               <div class="space-y-3">
-                <div
-                  v-for="(day, index) in itinerary"
-                  :key="index"
-                  class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md"
-                >
-                  <button
-                    @click="toggleDay(Number(index))"
-                    class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
-                  >
+                <div v-for="(day, index) in itinerary" :key="index"
+                  class="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
+                  <button @click="toggleDay(Number(index))"
+                    class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors">
                     <div class="flex items-center gap-3">
                       <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <span class="text-xs font-black text-primary">{{ Number(index) + 1 }}</span>
                       </div>
                       <span class="font-bold text-slate-800">{{ day.title }}</span>
                     </div>
-                    <ChevronDown
-                      class="w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0"
-                      :class="{ 'rotate-180': expandedDays.has(Number(index)) }"
-                    />
+                    <ChevronDown class="w-5 h-5 text-slate-400 transition-transform duration-300 flex-shrink-0"
+                      :class="{ 'rotate-180': expandedDays.has(Number(index)) }" />
                   </button>
-                  <div
-                    v-show="expandedDays.has(Number(index))"
-                    class="px-5 pb-5 pt-0"
-                  >
-                    <div class="pl-11 prose prose-sm prose-slate max-w-none prose-p:text-slate-600 prose-p:leading-relaxed" v-html="day.description"></div>
+                  <div v-show="expandedDays.has(Number(index))" class="px-5 pb-5 pt-0">
+                    <div
+                      class="pl-11 prose prose-sm prose-slate max-w-none prose-p:text-slate-600 prose-p:leading-relaxed"
+                      v-html="day.description"></div>
                   </div>
                 </div>
               </div>
@@ -334,7 +347,8 @@ onMounted(fetchTrip)
                 <span class="text-lg font-normal text-slate-400 ml-2">({{ reviewsList.length }})</span>
               </h2>
               <div class="space-y-4">
-                <Card v-for="(review, index) in reviewsList" :key="index" class="rounded-2xl border-none shadow-sm hover:shadow-md transition-shadow">
+                <Card v-for="(review, index) in reviewsList" :key="index"
+                  class="rounded-2xl border-none shadow-sm hover:shadow-md transition-shadow">
                   <CardContent class="p-6">
                     <div class="flex items-center justify-between mb-3">
                       <div class="flex items-center gap-3">
@@ -345,16 +359,21 @@ onMounted(fetchTrip)
                           <p class="font-bold text-slate-800">{{ review.user }}</p>
                           <div class="flex items-center gap-2">
                             <p v-if="review.createdAt" class="text-xs text-slate-400">
-                              {{ new Date(review.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' }) }}
+                              {{ new Date(review.createdAt).toLocaleDateString('it-IT', {
+                                day: '2-digit', month: 'long',
+                                year: 'numeric'
+                              }) }}
                             </p>
-                            <span v-if="review.travelPeriod" class="text-xs text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full">
+                            <span v-if="review.travelPeriod"
+                              class="text-xs text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full">
                               📅 {{ review.travelPeriod }}
                             </span>
                           </div>
                         </div>
                       </div>
                       <div class="flex items-center gap-1">
-                        <Star v-for="s in 5" :key="s" class="w-4 h-4" :class="s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'" />
+                        <Star v-for="s in 5" :key="s" class="w-4 h-4"
+                          :class="s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'" />
                       </div>
                     </div>
                     <p class="text-slate-600 leading-relaxed">{{ review.content }}</p>
@@ -372,24 +391,21 @@ onMounted(fetchTrip)
               <div v-if="offers.length > 1">
                 <h3 class="text-sm font-bold text-slate-400 uppercase mb-3">Date Disponibili</h3>
                 <div class="space-y-2">
-                  <button
-                    v-for="(offer, index) in offers"
-                    :key="index"
-                    @click="selectedOfferIndex = Number(index)"
+                  <button v-for="(offer, index) in offers" :key="index" @click="selectedOfferIndex = Number(index)"
                     :class="[
                       'w-full text-left p-4 rounded-2xl border-2 transition-all duration-200',
                       selectedOfferIndex === Number(index)
                         ? 'border-primary bg-primary/5 shadow-md'
                         : 'border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm'
-                    ]"
-                  >
+                    ]">
                     <div class="flex items-center justify-between">
                       <div>
                         <p class="text-sm font-bold text-slate-800">
                           {{ formatShortDate(offer.startDate) }} - {{ formatShortDate(offer.endDate) }}
                         </p>
                         <p class="text-xs text-slate-500 mt-0.5">
-                          {{ getAvailableSeats(offer) }} {{ getAvailableSeats(offer) === 1 ? 'posto disponibile' : 'posti disponibili' }}
+                          {{ getAvailableSeats(offer) }} {{ getAvailableSeats(offer) === 1 ? 'posto disponibile' :
+                            'posti disponibili' }}
                         </p>
                       </div>
                       <span class="text-lg font-black text-primary">{{ offer.price }}€</span>
@@ -421,7 +437,9 @@ onMounted(fetchTrip)
                     </div>
                     <div class="flex items-center gap-3 text-slate-600">
                       <Users class="w-5 h-5 text-primary flex-shrink-0" />
-                      <span class="text-sm font-medium">{{ getAvailableSeats(selectedOffer) }} {{ getAvailableSeats(selectedOffer) === 1 ? 'posto disponibile' : 'posti disponibili' }} su {{ selectedOffer.maxParticipants }}</span>
+                      <span class="text-sm font-medium">{{ getAvailableSeats(selectedOffer) }} {{
+                        getAvailableSeats(selectedOffer) === 1 ? 'posto disponibile' : 'posti disponibili' }} su {{
+                          selectedOffer.maxParticipants }}</span>
                     </div>
 
                     <!-- Progress Bar -->
@@ -431,11 +449,10 @@ onMounted(fetchTrip)
                         <span>{{ selectedOffer.occupiedSeats || 0 }}/{{ selectedOffer.maxParticipants }}</span>
                       </div>
                       <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div
-                          class="h-full rounded-full transition-all duration-700"
+                        <div class="h-full rounded-full transition-all duration-700"
                           :class="getAvailableSeats(selectedOffer) <= 3 ? 'bg-orange-500' : 'bg-primary'"
-                          :style="{ width: `${((selectedOffer.occupiedSeats || 0) / (selectedOffer.maxParticipants || 1)) * 100}%` }"
-                        ></div>
+                          :style="{ width: `${((selectedOffer.occupiedSeats || 0) / (selectedOffer.maxParticipants || 1)) * 100}%` }">
+                        </div>
                       </div>
                     </div>
 
@@ -445,15 +462,14 @@ onMounted(fetchTrip)
                         <span class="text-xl font-black text-primary">{{ selectedOffer.depositPrice }}€</span>
                       </div>
 
-                      <Button
+                      <Button @click="handleBooking(selectedOffer.documentId)"
                         class="w-full rounded-2xl h-14 text-base font-bold shadow-lg hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 group/btn"
                         :variant="getAvailableSeats(selectedOffer) === 0 ? 'secondary' : 'default'"
-                        :disabled="getAvailableSeats(selectedOffer) === 0"
-                        size="lg"
-                      >
+                        :disabled="getAvailableSeats(selectedOffer) === 0" size="lg">
                         <span v-if="getAvailableSeats(selectedOffer) === 0">Viaggio al completo</span>
                         <span v-else>Blocca il posto con {{ selectedOffer.depositPrice }}€</span>
-                        <ArrowRight v-if="getAvailableSeats(selectedOffer) > 0" class="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                        <ArrowRight v-if="getAvailableSeats(selectedOffer) > 0"
+                          class="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
                       </Button>
                     </div>
 
@@ -487,15 +503,18 @@ onMounted(fetchTrip)
 
     <!-- Lightbox -->
     <Teleport to="body">
-      <div v-if="lightboxOpen" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center" @click.self="closeLightbox">
+      <div v-if="lightboxOpen" class="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center"
+        @click.self="closeLightbox">
         <button @click="closeLightbox" class="absolute top-6 right-6 text-white/70 hover:text-white transition-colors">
           <X class="w-8 h-8" />
         </button>
-        <button @click="prevImage" class="absolute left-4 md:left-8 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-3">
+        <button @click="prevImage"
+          class="absolute left-4 md:left-8 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-3">
           <ChevronLeft class="w-6 h-6" />
         </button>
         <img :src="galleryUrls[lightboxIndex]" class="max-h-[85vh] max-w-[90vw] object-contain rounded-lg shadow-2xl" />
-        <button @click="nextImage" class="absolute right-4 md:right-8 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-3">
+        <button @click="nextImage"
+          class="absolute right-4 md:right-8 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-3">
           <ChevronRight class="w-6 h-6" />
         </button>
         <div class="absolute bottom-6 text-white/60 text-sm font-medium">

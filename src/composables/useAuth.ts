@@ -96,7 +96,7 @@ export function useAuth() {
         if (!token.value) return
         loading.value = true
         try {
-            const response = await fetch(`${apiUrl}/api/users/me?populate=avatar&populate=role`, {
+            const response = await fetch(`${apiUrl}/api/users/me?populate=*`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             })
             if (!response.ok) {
