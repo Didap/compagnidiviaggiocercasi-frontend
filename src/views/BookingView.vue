@@ -156,6 +156,7 @@ const submitBooking = async () => {
     submitting.value = true
     error.value = null
 
+
     try {
         const payload = {
             data: {
@@ -186,16 +187,32 @@ const submitBooking = async () => {
             throw new Error(errData?.error?.message || 'Errore durante la prenotazione')
         }
 
-        console.log('[Booking] Submission successful!')
+        const data = await response.json()
+        const checkoutUrl = data?.meta?.checkoutUrl
+
+        if (checkoutUrl) {
+            console.log('[Booking] Redirecting to Stripe:', checkoutUrl)
+            window.location.href = checkoutUrl
+            return
+        }
+
+        console.log('[Booking] Submission successful (no Stripe URL)!')
         success.value = true
         window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (err: any) {
         console.error('[Booking] Submit error:', err)
         error.value = err.message
     } finally {
-        submitting.value = false
+        // Only stop submitting if we are NOT redirecting
+        // if we are redirecting, we want the button to stay disabled/spinning until the page unloads
+        if (!success.value && !error.value) {
+            // keeping creating...
+        } else {
+            submitting.value = false
+        }
     }
 }
+
 
 onMounted(fetchOffer)
 </script>

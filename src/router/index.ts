@@ -25,6 +25,16 @@ const router = createRouter({
       component: () => import('../views/BookingView.vue'),
     },
     {
+      path: '/prenotazione/successo',
+      name: 'booking-success',
+      component: () => import('../views/BookingSuccessView.vue'),
+    },
+    {
+      path: '/prenotazione/annullato',
+      name: 'booking-cancel',
+      component: () => import('../views/BookingCancelView.vue'),
+    },
+    {
       path: '/accedi',
       name: 'login',
       component: () => import('../views/LoginView.vue'),

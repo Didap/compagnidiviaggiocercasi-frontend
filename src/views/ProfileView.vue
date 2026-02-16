@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
@@ -29,7 +29,10 @@ import {
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 
+
 const router = useRouter()
+const route = useRoute()
+
 const { user, fullName, fetchMe, logout, isAuthenticated, token } = useAuth()
 
 const trips = ref<any[]>([])
@@ -286,6 +289,7 @@ const handleAvatarUpload = async (event: Event) => {
     }
 }
 
+
 onMounted(async () => {
     await fetchMe()
     if (!isAuthenticated.value) {
@@ -293,7 +297,20 @@ onMounted(async () => {
         return
     }
     await fetchMyTrips()
+
+    // Check for success param from Stripe redirect
+    if (route.query.success === 'true') {
+        saveSuccess.value = true
+        // Optional: clear query param
+        router.replace({ query: {} })
+        // We could also show a specific "Payment Successful" message separate from profile save
+        // But reusing saveSuccess for now is a quick win, or we add a new state.
+        // Let's stick to a simple alert or use a new state if needed.
+        // Actually, let's look at the template. There's a 'saveSuccess' in the edit modal.
+        // That's hidden. We should add a global success message in the main view.
+    }
 })
+
 </script>
 
 <template>
@@ -306,10 +323,21 @@ onMounted(async () => {
         </div>
 
         <template v-else>
+
             <!-- Profile Header -->
             <section class="pt-28 pb-12 px-6 relative overflow-hidden">
+                <div v-if="saveSuccess" class="container mx-auto mb-6">
+                    <div class="bg-green-50 border border-green-100 text-green-700 px-6 py-4 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+                        <CheckCircle2 class="w-6 h-6 text-green-600" />
+                        <div>
+                            <p class="font-bold">Pagamento confermato!</p>
+                            <p class="text-sm text-green-600">La tua prenotazione è stata confermata con successo.</p>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="container mx-auto relative z-10">
+
                     <div class="flex flex-col md:flex-row items-center md:items-end gap-8">
                         <!-- Avatar -->
                         <div class="relative group">

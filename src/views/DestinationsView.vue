@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Navbar from '@/components/Navbar.vue'
 import TripCard from '@/components/Trips/TripCard.vue'
+import Input from '@/components/ui/input/Input.vue'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { DateRangePicker } from '@/components/ui/date-picker'
+import { Search, X, SlidersHorizontal } from 'lucide-vue-next'
+import type { DateRange } from 'radix-vue'
+import { cn } from '@/lib/utils'
 
 interface Trip {
     id: number
@@ -11,6 +18,147 @@ interface Trip {
 const trips = ref<Trip[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+// Filter State
+const searchQuery = ref('')
+const dateRange = ref<DateRange | undefined>()
+const minTripPrice = ref(0)
+const maxTripPrice = ref(5000)
+const priceRange = ref<[number, number]>([0, 5000])
+
+// UI State
+const isFiltersOpen = ref(false)
+
+// Computed Filter Logic
+const filteredTrips = computed(() => {
+    return trips.value.filter(trip => {
+        // Handle both v4 (attributes) and v5 (flat) structures
+        const t = trip.attributes || trip
+        const offersRaw = t.offers
+        const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
+
+        // 1. Search Query (Title or Destination)
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase()
+            const matchTitle = t.title?.toLowerCase().includes(query)
+            const matchDest = t.destination?.toLowerCase().includes(query)
+            if (!matchTitle && !matchDest) return false
+        }
+
+        // 2. Price Range (check "Effective Price" - cheapest available)
+        if (priceRange.value[0] > minTripPrice.value || priceRange.value[1] < maxTripPrice.value) {
+            const [min, max] = priceRange.value
+
+            // Calculate effective price for filtering
+            // Logic must match TripCard: Cheapest AVAILABLE offer, or cheapest absolute if all sold out.
+            let effectivePrice = Infinity
+            const sortedOffers = [...offers].sort((a: any, b: any) => {
+                const aData = a.attributes || a
+                const bData = b.attributes || b
+                const aSeats = Math.max(0, (aData.maxParticipants || 0) - (aData.occupiedSeats || 0))
+                const bSeats = Math.max(0, (bData.maxParticipants || 0) - (bData.occupiedSeats || 0))
+                const aAvailable = aSeats > 0
+                const bAvailable = bSeats > 0
+
+                if (aAvailable && !bAvailable) return -1
+                if (!aAvailable && bAvailable) return 1
+                return (aData.price ?? Infinity) - (bData.price ?? Infinity)
+            })
+
+            if (sortedOffers.length > 0) {
+                const bestOffer = sortedOffers[0]
+                const bestData = bestOffer.attributes || bestOffer
+                effectivePrice = bestData.price ?? Infinity
+            }
+
+            // If effective price is within range, keep the trip
+            return effectivePrice >= min && effectivePrice <= max
+        }
+
+        // 3. Date Range
+        if (dateRange.value?.start) {
+            // Convert start date to YYYY-MM-DD string for comparison
+            const startVal = dateRange.value.start.toString()
+            const endVal = dateRange.value.end ? dateRange.value.end.toString() : startVal
+
+            const hasDateOffer = offers.some((o: any) => {
+                const oData = o.attributes || o
+                const dateStr = oData.startDate // Assuming YYYY-MM-DD from API
+                if (!dateStr) return false
+
+                // Simple string comparison works for ISO dates YYYY-MM-DD
+                return dateStr >= startVal && dateStr <= endVal
+            })
+            if (!hasDateOffer) return false
+        }
+
+        return true
+    })
+})
+
+const calculatePriceBounds = () => {
+    let min = Infinity
+    let max = 0
+    let hasOffers = false
+
+    trips.value.forEach(trip => {
+        const t = trip.attributes || trip
+        const offersRaw = t.offers
+        const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
+
+        if (offers.length > 0) {
+            hasOffers = true
+
+            // Calculate effective price (Cheapest AVAILABLE or Cheapest Absolute)
+            const sortedOffers = [...offers].sort((a: any, b: any) => {
+                const aData = a.attributes || a
+                const bData = b.attributes || b
+                const aSeats = Math.max(0, (aData.maxParticipants || 0) - (aData.occupiedSeats || 0))
+                const bSeats = Math.max(0, (bData.maxParticipants || 0) - (bData.occupiedSeats || 0))
+                const aAvailable = aSeats > 0
+                const bAvailable = bSeats > 0
+
+                if (aAvailable && !bAvailable) return -1
+                if (!aAvailable && bAvailable) return 1
+                return (aData.price ?? Infinity) - (bData.price ?? Infinity)
+            })
+
+            const bestOffer = sortedOffers[0]
+            const bestData = bestOffer.attributes || bestOffer
+            const price = bestData.price ?? Infinity
+
+            if (price < min) min = price
+            if (price > max) max = price
+        }
+    })
+
+    if (hasOffers) {
+        minTripPrice.value = min
+        maxTripPrice.value = max
+        // Reset range to full bounds
+        priceRange.value = [min, max]
+    } else {
+        // Default fallbacks if no data
+        minTripPrice.value = 0
+        maxTripPrice.value = 5000
+        priceRange.value = [0, 5000]
+    }
+}
+
+const resetFilters = () => {
+    searchQuery.value = ''
+    priceRange.value = [minTripPrice.value, maxTripPrice.value]
+    dateRange.value = undefined
+}
+
+const activeFiltersCount = computed(() => {
+    let count = 0
+    if (searchQuery.value) count++
+    // Check if price range is different from min/max bounds
+    if (priceRange.value[0] > minTripPrice.value || priceRange.value[1] < maxTripPrice.value) count++
+    if (dateRange.value) count++
+    return count
+})
 
 const fetchTrips = async () => {
     try {
@@ -23,6 +171,10 @@ const fetchTrips = async () => {
 
         const data = await response.json()
         trips.value = data.data
+
+        // Calculate dynamic prices after data load
+        calculatePriceBounds()
+
     } catch (err: any) {
         error.value = err.message
         console.error('Error fetching trips:', err)
@@ -87,9 +239,75 @@ onMounted(() => {
             </div>
         </section>
 
-        <!-- TRIPS GRID -->
-        <section class="py-20 bg-white min-h-[40vh]">
+        <!-- FILTERS & GRID -->
+        <section class="py-12 bg-white min-h-[40vh]">
             <div class="container mx-auto px-6">
+
+                <!-- FILTER BAR -->
+                <div class="relative z-50 -mt-24 mb-16 bg-white rounded-3xl shadow-xl border border-slate-100 p-6">
+                    <div class="flex flex-col gap-6">
+                        <!-- Top Row: Search & Toggle -->
+                        <div class="flex items-end gap-4">
+                            <!-- Search -->
+                            <div class="flex-grow relative space-y-2">
+                                <label
+                                    class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Cerca</label>
+                                <div class="relative">
+                                    <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                    <Input v-model="searchQuery" placeholder="Destinazione..."
+                                        class="pl-10 h-10 rounded-xl border-slate-200 bg-slate-50 focus:bg-white transition-all w-full" />
+                                </div>
+                            </div>
+
+                            <!-- Filter Toggle Button -->
+                            <Button @click="isFiltersOpen = !isFiltersOpen" variant="outline" size="icon"
+                                :class="cn('relative h-10 w-10 rounded-xl transition-all border-slate-200', isFiltersOpen ? 'bg-primary text-white border-primary hover:bg-primary/90 hover:text-white' : 'bg-white hover:bg-slate-50 text-slate-500')"
+                                title="Filtri">
+                                <SlidersHorizontal class="w-5 h-5" />
+                                <span v-if="activeFiltersCount > 0 && !isFiltersOpen"
+                                    class="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                            </Button>
+                        </div>
+
+                        <!-- Collapsible Filters -->
+                        <div v-show="isFiltersOpen"
+                            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-6 animate-in slide-in-from-top-2 duration-200">
+                            <!-- Date Range -->
+                            <div class="md:col-span-1 lg:col-span-3 space-y-2">
+                                <label
+                                    class="text-xs font-bold text-slate-500 uppercase tracking-wider ml-1">Date</label>
+                                <DateRangePicker v-model="dateRange" class="w-full" />
+                            </div>
+
+                            <!-- Price -->
+                            <div class="md:col-span-1 lg:col-span-4 space-y-2 px-2">
+                                <div class="flex justify-between items-center">
+                                    <label
+                                        class="text-xs font-bold text-slate-500 uppercase tracking-wider">Budget</label>
+                                    <span class="text-xs font-bold text-primary">{{ priceRange[0] }}€ - {{ priceRange[1]
+                                        >=
+                                        maxTripPrice ? maxTripPrice + '€+' : priceRange[1] + '€' }}</span>
+                                </div>
+                                <div class="h-10 flex items-center">
+                                    <Slider v-model="priceRange" :min="minTripPrice" :max="maxTripPrice" :step="100"
+                                        :min-steps-between-thumbs="1" class="w-full" />
+                                </div>
+                            </div>
+
+                            <!-- Internal Reset -->
+                            <div class="md:col-span-2 lg:col-span-7 flex justify-end border-t border-slate-100 pt-4"
+                                v-if="activeFiltersCount > 0">
+                                <Button @click="resetFilters" variant="ghost"
+                                    class="text-red-500 hover:text-red-700 hover:bg-red-50 text-sm h-9 px-4 rounded-lg">
+                                    <X class="w-4 h-4 mr-2" />
+                                    Resetta tutto
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
                 <div v-if="loading" class="text-center py-20">
                     <div
                         class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4">
@@ -104,15 +322,16 @@ onMounted(() => {
                         class="px-8 py-3 bg-primary text-white rounded-full font-bold shadow-lg hover:bg-primary/90 transition-all">Riprova</button>
                 </div>
 
-                <div v-else-if="trips.length === 0"
+                <div v-else-if="filteredTrips.length === 0"
                     class="text-center py-20 px-6 bg-bg-primary rounded-[3rem] border-2 border-dashed border-primary/20">
                     <p class="text-2xl font-black text-primary mb-4">Nessun viaggio trovato</p>
-                    <p class="text-gray-500 max-w-sm mx-auto">Al momento non ci sono viaggi disponibili. Torna a
-                        trovarci presto!</p>
+                    <p class="text-gray-500 max-w-sm mx-auto mb-6">Non ci sono viaggi che corrispondono ai tuoi criteri
+                        di ricerca.</p>
+                    <Button @click="resetFilters" variant="outline" class="rounded-full">Resetta filtri</Button>
                 </div>
 
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                    <TripCard v-for="trip in trips" :key="trip.id" :trip="trip" />
+                    <TripCard v-for="trip in filteredTrips" :key="trip.id" :trip="trip" />
                 </div>
             </div>
         </section>

@@ -60,14 +60,28 @@ const offers = computed(() => {
   const raw = trip.value?.offers
   if (!raw) return []
   const list = Array.isArray(raw) ? raw : raw?.data?.map((o: any) => o.attributes || o) || []
-  return list.map((o: any) => o.attributes || o)
+  const mapped = list.map((o: any) => o.attributes || o)
+
+  // Sort: Available first, then cheapest
+  return mapped.sort((a: any, b: any) => {
+    const aSeats = Math.max(0, (a.maxParticipants || 0) - (a.occupiedSeats || 0))
+    const bSeats = Math.max(0, (b.maxParticipants || 0) - (b.occupiedSeats || 0))
+    const aAvailable = aSeats > 0
+    const bAvailable = bSeats > 0
+
+    if (aAvailable && !bAvailable) return -1
+    if (!aAvailable && bAvailable) return 1
+
+    return (a.price ?? Infinity) - (b.price ?? Infinity)
+  })
 })
 
 const selectedOffer = computed(() => offers.value[selectedOfferIndex.value] || null)
 
 const cheapestPrice = computed(() => {
+  // Since offers are sorted by availability then price, the first one is the "effective" starting price
   if (offers.value.length === 0) return null
-  return Math.min(...offers.value.map((o: any) => o.price || Infinity))
+  return offers.value[0].price
 })
 
 // Image
