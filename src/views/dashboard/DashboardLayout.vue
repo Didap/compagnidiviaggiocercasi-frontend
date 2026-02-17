@@ -11,7 +11,9 @@ import {
     LogOut,
     Menu,
     X,
+
     ChevronLeft,
+    Ticket,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -21,6 +23,7 @@ const sidebarOpen = ref(false)
 
 const navItems = [
     { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
+    { to: '/dashboard/prenotazioni', label: 'Prenotazioni', icon: Ticket },
     { to: '/dashboard/viaggi', label: 'Viaggi', icon: Map },
     { to: '/dashboard/offerte', label: 'Offerte', icon: Tag },
     { to: '/dashboard/recensioni', label: 'Recensioni', icon: Star },

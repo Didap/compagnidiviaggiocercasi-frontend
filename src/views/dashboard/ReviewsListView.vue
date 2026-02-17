@@ -5,13 +5,22 @@ import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Star, Trash2, Loader2 } from 'lucide-vue-next'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useToast } from '@/composables/useToast'
+import { CardListSkeleton } from '@/components/ui/skeleton'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
+const toast = useToast()
 
 const reviews = ref<any[]>([])
 const loading = ref(true)
 const deleting = ref<string | null>(null)
+
+// Confirm Modal State
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+const itemToDelete = ref<any>(null)
 
 const fetchReviews = async () => {
     loading.value = true
@@ -29,20 +38,33 @@ const fetchReviews = async () => {
     }
 }
 
-const deleteReview = async (review: any) => {
-    if (!confirm('Eliminare questa recensione?')) return
+const deleteReview = (review: any) => {
+    itemToDelete.value = review
+    confirmMessage.value = `Sei sicuro di voler eliminare questa recensione?`
+    showConfirm.value = true
+}
+
+const confirmDelete = async () => {
+    if (!itemToDelete.value) return
+    const review = itemToDelete.value
+    showConfirm.value = false
+
     const docId = review.documentId || review.id
     deleting.value = docId
     try {
-        await fetch(`${apiUrl}/api/reviews/${docId}`, {
+        const res = await fetch(`${apiUrl}/api/reviews/${docId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token.value}` },
         })
+        if (!res.ok) throw new Error('Errore nella cancellazione')
         reviews.value = reviews.value.filter((r: any) => (r.documentId || r.id) !== docId)
+        toast.success('Recensione eliminata con successo')
     } catch (err) {
         console.error('Delete error:', err)
+        toast.error('Errore nella cancellazione')
     } finally {
         deleting.value = null
+        itemToDelete.value = null
     }
 }
 
@@ -62,9 +84,7 @@ onMounted(fetchReviews)
         </div>
 
         <!-- Loading -->
-        <div v-if="loading" class="flex justify-center py-20">
-            <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent"></div>
-        </div>
+        <CardListSkeleton v-if="loading" :count="3" />
 
         <!-- Empty -->
         <Card v-else-if="reviews.length === 0" class="rounded-2xl border-none shadow-sm">
@@ -115,4 +135,8 @@ onMounted(fetchReviews)
             </Card>
         </div>
     </div>
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog :isOpen="showConfirm" title="Elimina Recensione" :message="confirmMessage"
+        confirmText="Elimina definitivamente" variant="danger" @close="showConfirm = false" @confirm="confirmDelete" />
 </template>

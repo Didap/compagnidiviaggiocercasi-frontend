@@ -5,6 +5,7 @@ import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
+import { useToast } from '@/composables/useToast'
 import {
     Save, Loader2, ArrowLeft, Plus, Trash2, ImagePlus, GripVertical, Upload,
 } from 'lucide-vue-next'
@@ -13,14 +14,13 @@ const route = useRoute()
 const router = useRouter()
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
+const toast = useToast()
 
 const isEdit = computed(() => !!route.params.id)
 const tripId = computed(() => route.params.id as string)
 
 const loading = ref(false)
 const saving = ref(false)
-const error = ref<string | null>(null)
-const success = ref(false)
 
 // Form data
 const form = ref({
@@ -84,7 +84,7 @@ const fetchTrip = async () => {
             itinerary.value = itin.map((d: any) => ({ title: d.title || '', description: d.description || '' }))
         }
     } catch (err: any) {
-        error.value = err.message
+        toast.error(err.message)
     } finally {
         loading.value = false
     }
@@ -141,11 +141,8 @@ const uploadFiles = async (files: File[]) => {
     return await res.json()
 }
 
-// Save
 const saveTrip = async () => {
     saving.value = true
-    error.value = null
-    success.value = false
 
     try {
         // Validate
@@ -199,12 +196,12 @@ const saveTrip = async () => {
             throw new Error(data?.error?.message || 'Errore nel salvataggio')
         }
 
-        success.value = true
+        toast.success(`Viaggio ${isEdit.value ? 'aggiornato' : 'creato'} con successo!`)
         setTimeout(() => {
             router.push('/dashboard/viaggi')
         }, 800)
     } catch (err: any) {
-        error.value = err.message
+        toast.error(err.message)
     } finally {
         saving.value = false
     }
@@ -376,11 +373,7 @@ onMounted(fetchTrip)
                 </CardContent>
             </Card>
 
-            <!-- Error / Success -->
-            <p v-if="error" class="text-sm text-red-500 font-medium bg-red-50 px-4 py-3 rounded-xl">{{ error }}</p>
-            <p v-if="success" class="text-sm text-green-600 font-medium bg-green-50 px-4 py-3 rounded-xl">
-                ✓ Viaggio {{ isEdit ? 'aggiornato' : 'creato' }} con successo!
-            </p>
+
 
             <!-- Actions -->
             <div class="flex items-center gap-3 pt-2">

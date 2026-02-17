@@ -84,7 +84,7 @@ const posts = [
                             <div
                                 class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-secondary/60">
                                 <span class="bg-white px-3 py-1 rounded-full text-secondary shadow-sm">{{ post.category
-                                    }}</span>
+                                }}</span>
                                 <span>{{ post.date }}</span>
                             </div>
                             <h2

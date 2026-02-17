@@ -6,16 +6,28 @@ import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import {
-    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar,
+    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar, Eye,
 } from 'lucide-vue-next'
+import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import { useToast } from '@/composables/useToast'
+import { TableSkeleton } from '@/components/ui/skeleton'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
+const toast = useToast()
 
 const offers = ref<any[]>([])
 const trips = ref<any[]>([])
 const loading = ref(true)
 const deleting = ref<string | null>(null)
+const selectedOffer = ref<any>(null)
+const offerBookings = ref<any[]>([])
+const loadingDetails = ref(false)
+
+// Confirm Modal State
+const showConfirm = ref(false)
+const confirmMessage = ref('')
+const itemToDelete = ref<any>(null)
 
 // Form
 const showForm = ref(false)
@@ -56,6 +68,25 @@ const openEdit = (offer: any) => {
     }
     formError.value = null
     showForm.value = true
+}
+
+const openDetails = async (offer: any) => {
+    selectedOffer.value = offer
+    loadingDetails.value = true
+    offerBookings.value = []
+    try {
+        const docId = offer.documentId || offer.id
+        // Fetch confirmed bookings for this offer to show participants
+        const res = await fetch(`${apiUrl}/api/bookings?filters[offer][documentId]=${docId}&filters[status]=confirmed&populate[user][fields]=username,firstName,lastName,email&populate[participants]=*`, {
+            headers: { Authorization: `Bearer ${token.value}` }
+        })
+        const data = await res.json()
+        offerBookings.value = data.data || []
+    } catch (err) {
+        console.error('Error fetching offer bookings:', err)
+    } finally {
+        loadingDetails.value = false
+    }
 }
 
 const fetchData = async () => {
@@ -127,20 +158,33 @@ const saveOffer = async () => {
     }
 }
 
-const deleteOffer = async (offer: any) => {
-    if (!confirm('Eliminare questa offerta?')) return
+const deleteOffer = (offer: any) => {
+    itemToDelete.value = offer
+    confirmMessage.value = `Sei sicuro di voler eliminare questa offerta? Questa azione è irreversibile.`
+    showConfirm.value = true
+}
+
+const confirmDelete = async () => {
+    if (!itemToDelete.value) return
+    const offer = itemToDelete.value
+    showConfirm.value = false
+
     const docId = offer.documentId || offer.id
     deleting.value = docId
     try {
-        await fetch(`${apiUrl}/api/offers/${docId}`, {
+        const res = await fetch(`${apiUrl}/api/offers/${docId}`, {
             method: 'DELETE',
             headers: { Authorization: `Bearer ${token.value}` },
         })
+        if (!res.ok) throw new Error('Errore nella cancellazione')
         offers.value = offers.value.filter((o: any) => (o.documentId || o.id) !== docId)
+        toast.success('Offerta eliminata con successo')
     } catch (err) {
         console.error('Delete error:', err)
+        toast.error('Errore nella cancellazione dell\'offerta')
     } finally {
         deleting.value = null
+        itemToDelete.value = null
     }
 }
 
@@ -278,9 +322,7 @@ onMounted(fetchData)
         </Teleport>
 
         <!-- Loading -->
-        <div v-if="loading" class="flex justify-center py-20">
-            <div class="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent"></div>
-        </div>
+        <TableSkeleton v-if="loading" :rows="5" :columns="5" />
 
         <!-- Empty -->
         <Card v-else-if="offers.length === 0" class="rounded-2xl border-none shadow-sm">
@@ -337,6 +379,10 @@ onMounted(fetchData)
                             </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-end gap-2">
+                                    <button @click="openDetails(offer)"
+                                        class="p-2 text-slate-400 hover:text-secondary hover:bg-secondary/10 rounded-xl transition-colors">
+                                        <Eye class="w-4 h-4" />
+                                    </button>
                                     <button @click="openEdit(offer)"
                                         class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors">
                                         <Pencil class="w-4 h-4" />
@@ -356,4 +402,109 @@ onMounted(fetchData)
             </div>
         </Card>
     </div>
+
+    <!-- Details Modal -->
+    <Teleport to="body">
+        <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0"
+            enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100" leave-to-class="opacity-0">
+            <div v-if="selectedOffer" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="selectedOffer = null"></div>
+                <div
+                    class="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                    <!-- Header -->
+                    <div
+                        class="p-6 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md z-10">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Dettagli Offerta</h2>
+                            <p class="text-sm text-slate-500 font-medium">{{ getTripTitle(selectedOffer) }}</p>
+                        </div>
+                        <button @click="selectedOffer = null"
+                            class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
+                            <X class="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="overflow-y-auto p-6 space-y-8">
+                        <!-- Dates & Status -->
+                        <div class="bg-slate-50 rounded-2xl p-6">
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-1">Periodo</p>
+                                    <div class="flex items-center gap-2 font-bold text-slate-800">
+                                        <Calendar class="w-4 h-4 text-primary" />
+                                        {{ formatDate(selectedOffer.startDate) }} – {{ formatDate(selectedOffer.endDate)
+                                        }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-1">Stato Posti</p>
+                                    <Badge
+                                        class="bg-secondary/10 text-secondary border-none font-bold text-base px-3 py-1">
+                                        {{ getParticipantsCount(selectedOffer) }} / {{ selectedOffer.maxParticipants }}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pricing -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 rounded-xl border border-slate-100 bg-white">
+                                <p class="text-xs font-bold text-slate-400 uppercase mb-1">Prezzo Totale</p>
+                                <p class="text-2xl font-black text-slate-900">€{{ selectedOffer.price }}</p>
+                            </div>
+                            <div class="p-4 rounded-xl border border-slate-100 bg-white">
+                                <p class="text-xs font-bold text-slate-400 uppercase mb-1">Acconto Richiesto</p>
+                                <p class="text-2xl font-black text-slate-900">€{{ selectedOffer.depositPrice }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Participants List -->
+                        <div>
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Partecipanti
+                                Confermati</h3>
+
+                            <div v-if="loadingDetails" class="flex justify-center py-8">
+                                <Loader2 class="w-8 h-8 text-primary animate-spin" />
+                            </div>
+
+                            <div v-else-if="offerBookings.length === 0" class="text-center py-8 text-slate-400">
+                                <p>Nessun partecipante confermato per questa offerta.</p>
+                            </div>
+
+                            <div v-else class="space-y-3">
+                                <div v-for="b in offerBookings" :key="b.id"
+                                    class="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {{ b.user?.firstName?.charAt(0) || b.user?.username?.charAt(0) || '?' }}
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800 text-sm">
+                                                {{ b.user?.firstName ? `${b.user.firstName} ${b.user.lastName}` :
+                                                    b.user?.username }}
+                                            </p>
+                                            <p class="text-xs text-slate-400">{{ b.user?.email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-xs font-bold text-slate-500">
+                                            {{ (b.participants && b.participants.length > 0) ? `${b.participants.length}
+                                            posti` : '1 posto' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
+
+    <!-- Confirm Dialog -->
+    <ConfirmDialog :isOpen="showConfirm" title="Elimina Offerta" :message="confirmMessage"
+        confirmText="Elimina definitivamente" variant="danger" @close="showConfirm = false" @confirm="confirmDelete" />
 </template>

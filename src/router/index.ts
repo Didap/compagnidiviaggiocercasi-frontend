@@ -112,6 +112,7 @@ const router = createRouter({
       },
       children: [
         { path: '', name: 'dashboard', component: () => import('../views/dashboard/DashboardHome.vue') },
+        { path: 'prenotazioni', name: 'dashboard-bookings', component: () => import('../views/dashboard/BookingsListView.vue') },
         { path: 'viaggi', name: 'dashboard-trips', component: () => import('../views/dashboard/TripsListView.vue') },
         { path: 'viaggi/nuovo', name: 'dashboard-trip-create', component: () => import('../views/dashboard/TripFormView.vue') },
         { path: 'viaggi/:id/modifica', name: 'dashboard-trip-edit', component: () => import('../views/dashboard/TripFormView.vue') },
