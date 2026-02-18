@@ -9,15 +9,9 @@ import { DateRangePicker } from '@/components/ui/date-picker'
 import { Search, X, SlidersHorizontal } from 'lucide-vue-next'
 import type { DateRange } from 'radix-vue'
 import { cn } from '@/lib/utils'
+import { useTrips } from '@/composables/useTrips'
 
-interface Trip {
-    id: number
-    attributes: any
-}
-
-const trips = ref<Trip[]>([])
-const loading = ref(true)
-const error = ref<string | null>(null)
+const { trips, loading, error, fetchTrips } = useTrips()
 
 // Filter State
 const searchQuery = ref('')
@@ -47,7 +41,7 @@ const filteredTrips = computed(() => {
 
         // 2. Price Range (check "Effective Price" - cheapest available)
         if (priceRange.value[0] > minTripPrice.value || priceRange.value[1] < maxTripPrice.value) {
-            const [min, max] = priceRange.value
+            const [filterMin, filterMax] = priceRange.value
 
             // Calculate effective price for filtering
             // Logic must match TripCard: Cheapest AVAILABLE offer, or cheapest absolute if all sold out.
@@ -72,7 +66,7 @@ const filteredTrips = computed(() => {
             }
 
             // If effective price is within range, keep the trip
-            return effectivePrice >= min && effectivePrice <= max
+            return effectivePrice >= filterMin && effectivePrice <= filterMax
         }
 
         // 3. Date Range
@@ -160,31 +154,9 @@ const activeFiltersCount = computed(() => {
     return count
 })
 
-const fetchTrips = async () => {
-    try {
-        const apiUrl = import.meta.env.VITE_API_URL
-        const response = await fetch(`${apiUrl}/api/trips?populate[image][fields]=url&populate[reviews][populate]=*&populate[offers][populate]=*`)
-
-        if (!response.ok) {
-            throw new Error(`Errore HTTP: ${response.status}`)
-        }
-
-        const data = await response.json()
-        trips.value = data.data
-
-        // Calculate dynamic prices after data load
-        calculatePriceBounds()
-
-    } catch (err: any) {
-        error.value = err.message
-        console.error('Error fetching trips:', err)
-    } finally {
-        loading.value = false
-    }
-}
-
-onMounted(() => {
-    fetchTrips()
+onMounted(async () => {
+    await fetchTrips()
+    calculatePriceBounds()
 })
 </script>
 
@@ -347,10 +319,12 @@ onMounted(() => {
                 </h2>
                 <p class="text-xl text-gray-600 font-medium mb-12">Proponi tu la tua prossima meta e diventa un
                     Coordinatore!</p>
-                <button
-                    class="h-16 px-12 text-xl rounded-full bg-secondary text-white font-black shadow-2xl hover:bg-secondary/90 transition-all transform hover:scale-105">
-                    Proponi un Viaggio
-                </button>
+                <RouterLink to="/proponi-viaggio">
+                    <button
+                        class="h-16 px-12 text-xl rounded-full bg-secondary text-white font-black shadow-2xl hover:bg-secondary/90 transition-all transform hover:scale-105">
+                        Proponi un Viaggio
+                    </button>
+                </RouterLink>
             </div>
         </section>
     </main>

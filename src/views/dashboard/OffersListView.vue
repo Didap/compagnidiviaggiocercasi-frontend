@@ -34,6 +34,7 @@ const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
 const formError = ref<string | null>(null)
+
 const form = ref({
     trip: '',
     price: '',
@@ -42,10 +43,11 @@ const form = ref({
     endDate: '',
     maxParticipants: '',
     occupiedSeats: '0',
+    itinerary: [] as { title: string; description: string }[]
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0' }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', itinerary: [] }
     editingId.value = null
     formError.value = null
 }
@@ -65,6 +67,7 @@ const openEdit = (offer: any) => {
         endDate: offer.endDate || '',
         maxParticipants: String(offer.maxParticipants || ''),
         occupiedSeats: String(offer.occupiedSeats || '0'),
+        itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : []
     }
     formError.value = null
     showForm.value = true
@@ -93,7 +96,7 @@ const fetchData = async () => {
     loading.value = true
     try {
         const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&sort=createdAt:desc`, {
+            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&sort=createdAt:desc`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             }),
             fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {
@@ -108,6 +111,52 @@ const fetchData = async () => {
         console.error('Error:', err)
     } finally {
         loading.value = false
+    }
+}
+
+// Itinerary Helpers
+const addDay = () => {
+    form.value.itinerary.push({ title: '', description: '' })
+}
+
+const removeDay = (index: number) => {
+    form.value.itinerary.splice(index, 1)
+}
+
+const importTripItinerary = async () => {
+    if (!form.value.trip) {
+        formError.value = 'Seleziona prima un viaggio'
+        setTimeout(() => { formError.value = null }, 3000)
+        return
+    }
+    
+    // Find selected trip ID/DocumentID
+    const tripId = form.value.trip
+    
+    try {
+        // We need to fetch the trip's itinerary
+        const res = await fetch(`${apiUrl}/api/trips/${tripId}?populate[itinerary]=*`, {
+            headers: { Authorization: `Bearer ${token.value}` }
+        })
+        
+        if (!res.ok) throw new Error('Impossibile recuperare itinerario del viaggio')
+        
+        const json = await res.json()
+        const tripData = json.data?.attributes || json.data
+        
+        if (tripData?.itinerary && Array.isArray(tripData.itinerary)) {
+            form.value.itinerary = tripData.itinerary.map((d: any) => ({
+                title: d.title || '',
+                description: d.description || ''
+            }))
+            toast.success('Itinerario importato dal viaggio!')
+        } else {
+            toast.info('Il viaggio selezionato non ha un itinerario.')
+        }
+        
+    } catch (err: any) {
+        console.error('Import itinerary error:', err)
+        formError.value = 'Errore importazione itinerario'
     }
 }
 
@@ -129,6 +178,7 @@ const saveOffer = async () => {
                 endDate: form.value.endDate,
                 maxParticipants: parseInt(form.value.maxParticipants),
                 occupiedSeats: parseInt(form.value.occupiedSeats) || 0,
+                itinerary: form.value.itinerary.filter(d => d.title.trim())
             },
         }
 
@@ -232,8 +282,8 @@ onMounted(fetchData)
                 leave-from-class="opacity-100" leave-to-class="opacity-0">
                 <div v-if="showForm" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showForm = false"></div>
-                    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden">
-                        <div class="flex items-center justify-between p-6 border-b border-slate-100">
+                    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+                        <div class="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
                             <h2 class="text-xl font-bold text-slate-900">
                                 {{ editingId ? 'Modifica Offerta' : 'Nuova Offerta' }}
                             </h2>
@@ -242,69 +292,133 @@ onMounted(fetchData)
                                 <X class="w-5 h-5" />
                             </button>
                         </div>
-                        <div class="p-6 space-y-4">
-                            <div>
-                                <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Viaggio *</label>
-                                <select v-model="form.trip"
-                                    class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white">
-                                    <option value="">Seleziona viaggio...</option>
-                                    <option v-for="t in trips" :key="t.documentId || t.id"
-                                        :value="t.documentId || t.id">
-                                        {{ t.title }}
-                                    </option>
-                                </select>
+                        
+                        
+                        <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
+                            <div class="lg:grid lg:grid-cols-2 lg:gap-8 space-y-8">
+                                <!-- Left Column: General Info -->
+                                <div class="space-y-4">
+                                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 lg:hidden">Dettagli Generali</h3>
+                                    
+                                    <div>
+                                        <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Viaggio *</label>
+                                        <select v-model="form.trip"
+                                            class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white">
+                                            <option value="">Seleziona viaggio...</option>
+                                            <option v-for="t in trips" :key="t.documentId || t.id"
+                                                :value="t.documentId || t.id">
+                                                {{ t.title }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Prezzo (€)
+                                                *</label>
+                                            <input v-model="form.price" type="number" step="0.01"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                placeholder="0.00" />
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Acconto
+                                                (€)</label>
+                                            <input v-model="form.depositPrice" type="number" step="0.01"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                placeholder="0.00" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Inizio
+                                                *</label>
+                                            <input v-model="form.startDate" type="date"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Fine
+                                                *</label>
+                                            <input v-model="form.endDate" type="date"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max
+                                                Partecipanti
+                                                *</label>
+                                            <input v-model="form.maxParticipants" type="number"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                placeholder="20" />
+                                        </div>
+                                        <div>
+                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Posti
+                                                Occupati</label>
+                                            <input v-model="form.occupiedSeats" type="number"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                placeholder="0" />
+                                        </div>
+                                    </div>
+                                    
+                                    <p v-if="formError" class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
+                                        {{ formError }}
+                                    </p>
+                                </div>
+                                
+                                <!-- Right Column: Itinerary Section -->
+                                <div class="relative bg-slate-50/50 rounded-2xl lg:bg-transparent">
+                                    <div class="p-4 lg:p-0 lg:absolute lg:inset-0 flex flex-col">
+                                        <div class="flex items-center justify-between mb-4 shrink-0">
+                                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Itinerario Offerta</h3>
+                                            <div class="flex items-center gap-2">
+                                                <button @click="importTripItinerary" type="button"
+                                                    class="text-xs font-bold text-primary hover:text-primary/80 transition-colors px-3 py-1.5 bg-primary/10 rounded-lg">
+                                                    Importa da Viaggio
+                                                </button>
+                                                <button @click="addDay" type="button" 
+                                                    class="text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 bg-slate-100 rounded-lg flex items-center gap-1">
+                                                    <Plus class="w-3 h-3" /> Aggiungi
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[300px] lg:min-h-0">
+                                            <div v-if="form.itinerary.length > 0" class="space-y-3">
+                                                <div v-for="(day, i) in form.itinerary" :key="i" class="bg-slate-50 rounded-xl p-3 relative group border border-slate-100 hover:border-primary/20 transition-colors">
+                                                    <div class="flex items-center justify-between mb-2">
+                                                        <span class="text-xs font-bold text-slate-400 uppercase">Giorno {{ i + 1 }}</span>
+                                                        <button @click="removeDay(i)" type="button"
+                                                            class="text-red-400 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors">
+                                                            <Trash2 class="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
+                                                    <div class="space-y-2">
+                                                        <input v-model="day.title" type="text"
+                                                            class="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                                            :placeholder="`Titolo giorno ${i + 1}`" />
+                                                        <textarea v-model="day.description" rows="3"
+                                                            class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y"
+                                                            placeholder="Descrizione..."></textarea>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div v-else class="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-xl">
+                                                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                                    <Calendar class="w-6 h-6 text-slate-300" />
+                                                </div>
+                                                <p class="text-sm font-bold text-slate-600 mb-1">Nessun itinerario</p>
+                                                <p class="text-xs text-slate-400 max-w-[200px]">
+                                                    L'offerta utilizzerà l'itinerario predefinito del viaggio.
+                                                </p>
+                                                <button @click="importTripItinerary" type="button" class="mt-4 text-xs font-bold text-primary hover:underline">
+                                                    Importa ora
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Prezzo (€)
-                                        *</label>
-                                    <input v-model="form.price" type="number" step="0.01"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                        placeholder="0.00" />
-                                </div>
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Acconto
-                                        (€)</label>
-                                    <input v-model="form.depositPrice" type="number" step="0.01"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                        placeholder="0.00" />
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Inizio
-                                        *</label>
-                                    <input v-model="form.startDate" type="date"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                                </div>
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Fine
-                                        *</label>
-                                    <input v-model="form.endDate" type="date"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max
-                                        Partecipanti
-                                        *</label>
-                                    <input v-model="form.maxParticipants" type="number"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                        placeholder="20" />
-                                </div>
-                                <div>
-                                    <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Posti
-                                        Occupati</label>
-                                    <input v-model="form.occupiedSeats" type="number"
-                                        class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                                        placeholder="0" />
-                                </div>
-                            </div>
-                            <p v-if="formError" class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
-                                {{ formError }}</p>
                         </div>
-                        <div class="p-6 pt-0 flex items-center gap-3">
+                        <div class="p-6 border-t border-slate-100 flex items-center gap-3 shrink-0">
                             <Button @click="showForm = false" variant="outline"
                                 class="flex-1 rounded-2xl h-12 font-bold border-slate-200">
                                 Annulla

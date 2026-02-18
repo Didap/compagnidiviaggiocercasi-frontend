@@ -55,9 +55,27 @@ const router = createRouter({
       component: () => import('../views/BlogView.vue'),
     },
     {
+      path: '/blog/:slug',
+      name: 'post-detail',
+      component: () => import('../views/PostDetailView.vue'),
+    },
+    {
       path: '/registrati',
       name: 'register',
       component: () => import('../views/RegisterView.vue'),
+    },
+    {
+      path: '/proponi-viaggio',
+      name: 'propose-trip',
+      component: () => import('../views/ProposeTripView.vue'),
+      beforeEnter: (to, _from, next) => {
+        const token = localStorage.getItem('jwt')
+        if (!token) {
+          next({ name: 'login', query: { redirect: to.fullPath } })
+        } else {
+          next()
+        }
+      },
     },
     {
       path: '/profilo',
@@ -118,7 +136,13 @@ const router = createRouter({
         { path: 'viaggi/:id/modifica', name: 'dashboard-trip-edit', component: () => import('../views/dashboard/TripFormView.vue') },
         { path: 'offerte', name: 'dashboard-offers', component: () => import('../views/dashboard/OffersListView.vue') },
         { path: 'recensioni', name: 'dashboard-reviews', component: () => import('../views/dashboard/ReviewsListView.vue') },
+        { path: 'posts', name: 'dashboard-posts', component: () => import('../views/dashboard/PostsListView.vue') },
+        { path: 'posts/new', name: 'dashboard-post-create', component: () => import('../views/dashboard/PostFormView.vue') },
+        { path: 'posts/:id', name: 'dashboard-post-edit', component: () => import('../views/dashboard/PostFormView.vue') },
         { path: 'utenti', name: 'dashboard-users', component: () => import('../views/dashboard/UsersListView.vue') },
+
+        { path: 'proposte', name: 'dashboard-proposals', component: () => import('../views/dashboard/ProposalsListView.vue') },
+        { path: 'newsletter', name: 'dashboard-newsletter', component: () => import('../views/dashboard/NewsletterListView.vue') },
       ],
     },
   ],

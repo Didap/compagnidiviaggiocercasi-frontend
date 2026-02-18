@@ -111,6 +111,17 @@ const averageRating = computed(() => {
   return (sum / reviews.length).toFixed(1)
 })
 
+const formatTravelPeriod = (period: string) => {
+  if (!period) return ''
+  // Handle ISO string or simple date
+  const date = new Date(period)
+  if (!isNaN(date.getTime())) {
+    // Check if it's a full ISO string (contains T) to just show Month Year
+    return date.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' })
+  }
+  return period
+}
+
 const reviewsList = computed(() => {
   const reviews = trip.value?.reviews?.data || trip.value?.reviews
   if (!Array.isArray(reviews)) return []
@@ -118,7 +129,7 @@ const reviewsList = computed(() => {
     rating: r.attributes?.rating ?? r.rating ?? 0,
     content: r.attributes?.content ?? r.content ?? '',
     user: r.attributes?.authorName ?? r.authorName ?? 'Viaggiatore',
-    travelPeriod: r.attributes?.travelPeriod ?? r.travelPeriod ?? '',
+    travelPeriod: formatTravelPeriod(r.attributes?.travelPeriod ?? r.travelPeriod ?? ''),
     createdAt: r.attributes?.createdAt ?? r.createdAt,
   }))
 })
@@ -360,37 +371,55 @@ onMounted(fetchTrip)
                 Recensioni
                 <span class="text-lg font-normal text-slate-400 ml-2">({{ reviewsList.length }})</span>
               </h2>
-              <div class="space-y-4">
+              <div class="space-y-6">
                 <Card v-for="(review, index) in reviewsList" :key="index"
-                  class="rounded-2xl border-none shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent class="p-6">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span class="text-sm font-bold text-primary">{{ review.user.charAt(0).toUpperCase() }}</span>
+                  class="rounded-3xl border-none shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden bg-white">
+                  <CardContent class="p-8">
+                    <div class="flex items-start gap-5">
+                      <!-- Avatar -->
+                      <div class="flex-shrink-0">
+                        <div class="w-14 h-14 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 shadow-inner">
+                          <span class="text-xl font-black text-primary">{{ review.user.charAt(0).toUpperCase() }}</span>
                         </div>
-                        <div>
-                          <p class="font-bold text-slate-800">{{ review.user }}</p>
+                      </div>
+
+                      <!-- Header Content -->
+                      <div class="flex-grow min-w-0">
+                        <div class="flex flex-wrap items-center justify-between gap-y-2 mb-1">
                           <div class="flex items-center gap-2">
-                            <p v-if="review.createdAt" class="text-xs text-slate-400">
-                              {{ new Date(review.createdAt).toLocaleDateString('it-IT', {
-                                day: '2-digit', month: 'long',
-                                year: 'numeric'
-                              }) }}
-                            </p>
-                            <span v-if="review.travelPeriod"
-                              class="text-xs text-primary/70 bg-primary/5 px-2 py-0.5 rounded-full">
-                              📅 {{ review.travelPeriod }}
-                            </span>
+                             <h3 class="text-lg font-bold text-slate-900 truncate pr-2">
+                               {{ review.user.split('@')[0] }}
+                             </h3>
+                             <div class="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-green-100">
+                                <Shield class="w-3 h-3" />
+                                <span>Verificato</span>
+                             </div>
+                          </div>
+                          
+                          <!-- Rating -->
+                          <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
+                            <Star v-for="s in 5" :key="s" class="w-3.5 h-3.5"
+                              :class="s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'" />
                           </div>
                         </div>
-                      </div>
-                      <div class="flex items-center gap-1">
-                        <Star v-for="s in 5" :key="s" class="w-4 h-4"
-                          :class="s <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'" />
+
+                        <!-- Metadata -->
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mb-4">
+                           <span v-if="review.createdAt">
+                              {{ new Date(review.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) }}
+                           </span>
+                           <span v-if="review.travelPeriod" class="flex items-center gap-1.5 text-primary font-medium bg-primary/5 px-2.5 py-1 rounded-md">
+                              <Calendar class="w-3.5 h-3.5" />
+                              Ha viaggiato a {{ review.travelPeriod }}
+                           </span>
+                        </div>
+
+                        <!-- Content -->
+                        <p class="text-slate-700 leading-relaxed text-base italic pl-4 border-l-4 border-slate-100">
+                          "{{ review.content }}"
+                        </p>
                       </div>
                     </div>
-                    <p class="text-slate-600 leading-relaxed">{{ review.content }}</p>
                   </CardContent>
                 </Card>
               </div>

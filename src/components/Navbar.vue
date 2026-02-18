@@ -70,7 +70,7 @@ onUnmounted(() => {
         </RouterLink>
       </div>
       <!-- Authenticated -->
-      <div v-if="isAuthenticated" class="flex items-center gap-3">
+      <div v-if="isAuthenticated" class="hidden md:flex items-center gap-3">
         <RouterLink v-if="isAdmin" to="/dashboard">
           <Button variant="outline"
             class="rounded-full px-5 border-primary/30 text-primary hover:bg-primary/5 transition-all gap-2">
@@ -91,7 +91,7 @@ onUnmounted(() => {
         </Button>
       </div>
       <!-- Not Authenticated -->
-      <div v-else class="flex items-center gap-3">
+      <div v-else class="hidden md:flex items-center gap-3">
         <RouterLink to="/accedi">
           <Button variant="outline"
             class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">

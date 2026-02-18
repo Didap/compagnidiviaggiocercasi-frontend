@@ -4,7 +4,7 @@ import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
-import { Star, Trash2, Loader2 } from 'lucide-vue-next'
+import { Star, Trash2, Loader2, Eye, EyeOff } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { CardListSkeleton } from '@/components/ui/skeleton'
@@ -26,7 +26,7 @@ const fetchReviews = async () => {
     loading.value = true
     try {
         const res = await fetch(
-            `${apiUrl}/api/reviews?populate[trip][fields]=title&populate[user][fields]=username&sort=createdAt:desc`,
+            `${apiUrl}/api/reviews?populate[trip][fields]=title&populate[user][fields]=username&sort=createdAt:desc&publicationState=preview`,
             { headers: { Authorization: `Bearer ${token.value}` } }
         )
         const data = await res.json()
@@ -35,6 +35,40 @@ const fetchReviews = async () => {
         console.error('Error:', err)
     } finally {
         loading.value = false
+    }
+}
+
+const togglePublish = async (review: any) => {
+    const isPublished = !!review.publishedAt
+    const docId = review.documentId || review.id
+
+    // Optimistic UI update
+    const originalState = review.publishedAt
+    review.publishedAt = isPublished ? null : new Date().toISOString()
+
+    try {
+        const res = await fetch(`${apiUrl}/api/reviews/${docId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token.value}`
+            },
+            body: JSON.stringify({
+                data: {
+                    publishedAt: isPublished ? null : new Date().toISOString()
+                }
+            })
+        })
+
+        if (!res.ok) {
+            review.publishedAt = originalState // Revert
+            throw new Error('Failed to update')
+        }
+
+        toast.success(isPublished ? 'Recensione nascosta (Bozza)' : 'Recensione pubblicata')
+    } catch (err) {
+        console.error('Error toggling publish:', err)
+        toast.error('Errore nell\'aggiornamento dello stato')
     }
 }
 
@@ -109,6 +143,11 @@ onMounted(fetchReviews)
                                     class="bg-primary/10 text-primary border-none font-bold hover:bg-primary/10 cursor-default text-xs">
                                     {{ getTripTitle(review) }}
                                 </Badge>
+                                <Badge
+                                    :class="review.publishedAt ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+                                    class="border-none font-bold text-[10px] uppercase">
+                                    {{ review.publishedAt ? 'Pubblicata' : 'Bozza' }}
+                                </Badge>
                             </div>
                             <!-- Stars -->
                             <div class="flex items-center gap-0.5 mb-3">
@@ -124,12 +163,23 @@ onMounted(fetchReviews)
                                 Periodo: {{ review.travelPeriod }}
                             </p>
                         </div>
-                        <button @click="deleteReview(review)" :disabled="deleting === (review.documentId || review.id)"
-                            class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0 disabled:opacity-50">
-                            <Loader2 v-if="deleting === (review.documentId || review.id)"
-                                class="w-4 h-4 animate-spin" />
-                            <Trash2 v-else class="w-4 h-4" />
-                        </button>
+                        <div class="flex flex-col gap-2">
+                            <button @click="togglePublish(review)" :class="[
+                                'p-2 rounded-xl transition-colors flex-shrink-0',
+                                review.publishedAt ? 'text-green-600 hover:bg-green-50' : 'text-slate-400 hover:bg-slate-100'
+                            ]" :title="review.publishedAt ? 'Nascondi' : 'Pubblica'">
+                                <Eye v-if="review.publishedAt" class="w-4 h-4" />
+                                <EyeOff v-else class="w-4 h-4" />
+                            </button>
+                            <button @click="deleteReview(review)"
+                                :disabled="deleting === (review.documentId || review.id)"
+                                class="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors flex-shrink-0 disabled:opacity-50"
+                                title="Elimina">
+                                <Loader2 v-if="deleting === (review.documentId || review.id)"
+                                    class="w-4 h-4 animate-spin" />
+                                <Trash2 v-else class="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

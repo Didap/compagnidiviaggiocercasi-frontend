@@ -1,28 +1,48 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { User, ArrowRight } from 'lucide-vue-next'
+import { useBlog, type Post } from '@/composables/useBlog'
+import { useNewsletter } from '@/composables/useNewsletter'
+import { format } from 'date-fns'
+import { it } from 'date-fns/locale'
 
-const posts = [
-    {
-        id: 1,
-        title: 'Perché viaggiare con sconosciuti ti cambia la vita',
-        excerpt: 'Uscire dalla propria zona di comfort è il primo passo verso la scoperta di se stessi e di nuove, incredibili amicizie.',
-        date: '12 Febbraio 2024',
-        author: 'Elena Rossi',
-        category: 'Esperienze',
-        image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800'
-    },
-    {
-        id: 2,
-        title: 'Mete 2024: dove ci porterà la bussola quest\'anno',
-        excerpt: 'Dal Vietnam alla Malesia, ecco le destinazioni più desiderate dalla nostra community per i prossimi mesi.',
-        date: '8 Febbraio 2024',
-        author: 'Marco Neri',
-        category: 'Destinazioni',
-        image: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=800'
+const router = useRouter()
+const { getAllPosts } = useBlog()
+const { subscribeToNewsletter, isLoading: isNewsletterLoading } = useNewsletter()
+
+const email = ref('')
+
+const handleSubscribe = async () => {
+    const success = await subscribeToNewsletter(email.value)
+    if (success) {
+        email.value = ''
     }
-]
+}
+
+const posts = ref<Post[]>([])
+const isLoading = ref(true)
+const error = ref<string | null>(null)
+
+onMounted(async () => {
+    try {
+        posts.value = await getAllPosts()
+    } catch (e) {
+        error.value = 'Impossibile caricare gli articoli del blog.'
+    } finally {
+        isLoading.value = false
+    }
+})
+
+const formatDate = (dateString: string) => {
+    return format(new Date(dateString), 'd MMMM yyyy', { locale: it })
+}
+
+const getCoverUrl = (post: Post) => {
+    return post.cover?.url || 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80'
+}
 </script>
 
 <template>
@@ -73,22 +93,34 @@ const posts = [
         <!-- BLOG GRID -->
         <section class="py-24 px-6 bg-white shrink-0">
             <div class="container mx-auto max-w-6xl">
-                <div class="grid md:grid-cols-2 gap-12">
+                
+                <div v-if="isLoading" class="flex justify-center py-20">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                </div>
+
+                <div v-else-if="error" class="text-center py-20 text-red-500 font-bold text-xl">
+                    {{ error }}
+                </div>
+
+                <div v-else-if="posts.length === 0" class="text-center py-20 text-gray-500 font-medium text-xl">
+                    Non ci sono ancora articoli. Torna presto!
+                </div>
+
+                <div v-else class="grid md:grid-cols-2 gap-12">
                     <article v-for="post in posts" :key="post.id"
                         class="group bg-bg-primary rounded-[2rem] overflow-hidden border border-slate-100 transition-all hover:shadow-2xl hover:-translate-y-2">
                         <div class="aspect-video overflow-hidden">
-                            <img :src="post.image" :alt="post.title"
+                            <img :src="getCoverUrl(post)" :alt="post.title"
                                 class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                         </div>
                         <div class="p-8 md:p-10 space-y-6">
                             <div
                                 class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-secondary/60">
-                                <span class="bg-white px-3 py-1 rounded-full text-secondary shadow-sm">{{ post.category
-                                }}</span>
-                                <span>{{ post.date }}</span>
+                                <span v-if="post.category" class="bg-white px-3 py-1 rounded-full text-secondary shadow-sm">{{ post.category }}</span>
+                                <span>{{ formatDate(post.publishedAt) }}</span>
                             </div>
                             <h2
-                                class="text-3xl font-black text-primary leading-tight group-hover:text-secondary transition-colors">
+                                class="text-3xl font-black text-primary leading-tight group-hover:text-secondary transition-colors line-clamp-2">
                                 {{ post.title }}
                             </h2>
                             <p class="text-gray-600 font-medium leading-relaxed line-clamp-3">
@@ -97,9 +129,9 @@ const posts = [
                             <div class="pt-6 flex items-center justify-between border-t border-slate-200/50">
                                 <div class="flex items-center gap-2 text-sm font-bold text-gray-500">
                                     <User class="w-4 h-4" />
-                                    <span>{{ post.author }}</span>
+                                    <span>{{ post.author?.username || 'Redazione' }}</span>
                                 </div>
-                                <button
+                                <button @click="router.push(`/blog/${post.slug}`)"
                                     class="flex items-center gap-2 text-primary font-black uppercase text-xs tracking-widest group-hover:gap-4 transition-all">
                                     Leggi tutto
                                     <ArrowRight class="w-4 h-4" />
@@ -118,10 +150,11 @@ const posts = [
                 <p class="text-xl opacity-80 mb-12">Ricevi ispirazione e offerte esclusive direttamente nel tuo zaino
                     digitale.</p>
                 <div class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
-                    <input type="email" placeholder="La tua email"
-                        class="flex-1 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary h-16" />
-                    <Button size="lg" class="h-16 px-10 rounded-full bg-primary text-white font-black">
-                        Iscriviti
+                    <input v-model="email" type="email" placeholder="La tua email"
+                        class="flex-1 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary h-16 transition-all" />
+                    <Button @click="handleSubscribe" :disabled="isNewsletterLoading" size="lg" class="h-16 px-10 rounded-full bg-primary text-white font-black min-w-[140px]">
+                        <span v-if="isNewsletterLoading" class="animate-spin mr-2">⏳</span>
+                        {{ isNewsletterLoading ? '...' : 'Iscriviti' }}
                     </Button>
                 </div>
             </div>

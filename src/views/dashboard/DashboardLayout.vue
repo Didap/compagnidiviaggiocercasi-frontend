@@ -14,6 +14,8 @@ import {
 
     ChevronLeft,
     Ticket,
+    ClipboardList,
+    Mail,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -28,6 +30,8 @@ const navItems = [
     { to: '/dashboard/offerte', label: 'Offerte', icon: Tag },
     { to: '/dashboard/recensioni', label: 'Recensioni', icon: Star },
     { to: '/dashboard/utenti', label: 'Utenti', icon: Users },
+    { to: '/dashboard/proposte', label: 'Proposte', icon: ClipboardList },
+    { to: '/dashboard/newsletter', label: 'Newsletter', icon: Mail },
 ]
 
 const isActive = (item: typeof navItems[0]) => {

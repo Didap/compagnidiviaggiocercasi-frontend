@@ -111,13 +111,17 @@ import Button from '@/components/ui/button/Button.vue'
                 <p class="text-xl text-gray-600 font-medium mb-12">Ancora pochi passi e farai parte della nostra storia.
                 </p>
                 <div class="flex flex-col sm:flex-row justify-center gap-4">
-                    <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
-                        Scopri i Viaggi
-                    </Button>
-                    <Button variant="outline" size="lg"
-                        class="h-16 px-12 text-xl rounded-full border-2 border-secondary/30 text-secondary hover:bg-secondary hover:text-white transition-all">
-                        Contattaci
-                    </Button>
+                    <RouterLink to="/destinazioni">
+                        <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
+                            Scopri i Viaggi
+                        </Button>
+                    </RouterLink>
+                    <a href="mailto:info@compagnidiviaggiocercasi.it">
+                        <Button variant="outline" size="lg"
+                            class="h-16 px-12 text-xl rounded-full border-2 border-secondary/30 text-secondary hover:bg-secondary hover:text-white transition-all">
+                            Contattaci
+                        </Button>
+                    </a>
                 </div>
             </div>
         </section>
