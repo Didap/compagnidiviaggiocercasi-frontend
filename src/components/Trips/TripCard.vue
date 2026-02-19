@@ -9,61 +9,63 @@ import CardTitle from '@/components/ui/card/CardTitle.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import Button from '@/components/ui/button/Button.vue'
 import { Star, Users, Calendar, MapPin, ArrowRight } from 'lucide-vue-next'
+import { getImageUrl } from '@/utils/image'
 
 const props = defineProps<{
   trip: any
 }>()
 
 const tripData = computed(() => {
-  return props.trip?.attributes || props.trip
+  return props.trip.attributes || props.trip
 })
 
-// Get all offers (from nested Strapi data)
 const offers = computed(() => {
-  const raw = tripData.value.offers
-  if (!raw) return []
-  return Array.isArray(raw) ? raw : raw?.data?.map((o: any) => o.attributes || o) || []
+  const offersRaw = tripData.value.offers
+  return Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
 })
 
-// Cheapest offer for display on card
-// Cheapest AVAILABLE offer for display on card, or absolute cheapest if all sold out
-const cheapestOffer = computed(() => {
+import { isOfferBookable } from '@/utils/date'
+
+const offerData = computed(() => {
+  // Logic to find best offer or first offer
   if (offers.value.length === 0) return null
 
-  // Sort offers:
-  // 1. Availability (Available first)
-  // 2. Price (Lowest first)
+  // Try to find cheapest available AND bookable
   const sorted = [...offers.value].sort((a: any, b: any) => {
     const aData = a.attributes || a
     const bData = b.attributes || b
-
     const aSeats = Math.max(0, (aData.maxParticipants || 0) - (aData.occupiedSeats || 0))
     const bSeats = Math.max(0, (bData.maxParticipants || 0) - (bData.occupiedSeats || 0))
 
+    const aBookable = isOfferBookable(aData)
+    const bBookable = isOfferBookable(bData)
+
+    // Priority 1: Time constraint (Bookable first)
+    if (aBookable && !bBookable) return -1
+    if (!aBookable && bBookable) return 1
+
+    // Priority 2: Availability (Seats)
     const aAvailable = aSeats > 0
     const bAvailable = bSeats > 0
 
     if (aAvailable && !bAvailable) return -1
     if (!aAvailable && bAvailable) return 1
 
-    // If matching availability, sort by price
-    return (aData.price ?? Infinity) - (bData.price ?? Infinity)
+    // Priority 3: Price
+    return (aData.price || 0) - (bData.price || 0)
   })
 
-  return sorted[0]
+  // If even the best offer is not bookable, we might still show it but as "Expired"
+  // But effectively, this logic ensures that if ANY valid offer exists, it wins.
+  const best = sorted[0]
+  return best.attributes || best
 })
-
-const offerData = computed(() => {
-  if (!cheapestOffer.value) return null
-  return cheapestOffer.value.attributes || cheapestOffer.value
-})
-
 const imageUrl = computed(() => {
   const images = tripData.value.image
-  if (!images) return 'https://placehold.co/600x400?text=No+Image'
+  if (!images) return getImageUrl(null)
   const firstImage = Array.isArray(images) ? images[0] : images
   const url = firstImage?.url || firstImage?.attributes?.url || firstImage?.data?.attributes?.url || firstImage?.data?.url
-  return url ? `${import.meta.env.VITE_API_URL}${url}` : 'https://placehold.co/600x400?text=No+Image'
+  return getImageUrl(url)
 })
 
 const averageRating = computed(() => {
@@ -187,12 +189,13 @@ const dateRange = computed(() => {
       <CardFooter class="px-6 pb-6 pt-0 mt-auto">
         <Button
           class="w-full rounded-2xl h-12 text-sm font-bold shadow-lg hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 group/btn"
-          :variant="availableSeats === 0 && offerData ? 'secondary' : 'default'"
-          :disabled="availableSeats === 0 && !!offerData">
-          <span v-if="availableSeats === 0 && offerData">Viaggio al completo</span>
+          :variant="(availableSeats === 0 || (offerData && !isOfferBookable(offerData))) && offerData ? 'secondary' : 'default'"
+          :disabled="(availableSeats === 0 || !isOfferBookable(offerData)) && !!offerData">
+          <span v-if="offerData && !isOfferBookable(offerData)">Prenotazioni Chiuse</span>
+          <span v-else-if="availableSeats === 0 && offerData">Viaggio al completo</span>
           <span v-else-if="offerData">Blocca il posto con {{ offerData.depositPrice }}€</span>
           <span v-else>Scopri il viaggio</span>
-          <ArrowRight v-if="availableSeats > 0 || !offerData"
+          <ArrowRight v-if="(availableSeats > 0 && isOfferBookable(offerData)) || !offerData"
             class="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
         </Button>
       </CardFooter>

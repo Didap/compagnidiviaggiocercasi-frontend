@@ -7,6 +7,7 @@ import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search } from 'lucide-vue-next'
+import { getImageUrl } from '@/utils/image'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { useBulkActions } from '@/composables/useBulkActions'
@@ -127,9 +128,9 @@ const openDetails = async (trip: any) => {
 
 const getTripImage = (trip: any) => {
     const img = trip.image
-    if (!img) return ''
+    if (!img) return getImageUrl(null)
     const url = img?.url || img?.data?.attributes?.url || img?.attributes?.url
-    return url ? `${apiUrl}${url}` : ''
+    return getImageUrl(url)
 }
 
 const getOffersCount = (trip: any) => {
@@ -349,7 +350,7 @@ onMounted(fetchTrips)
                                         class="grid grid-cols-4 gap-2">
                                         <div v-for="(img, i) in selectedTrip.gallery.slice(0, 4)" :key="i"
                                             class="aspect-square rounded-lg overflow-hidden bg-slate-50 cursor-pointer hover:opacity-80 transition-opacity">
-                                            <img :src="`${apiUrl}${img.url}`" class="w-full h-full object-cover" />
+                                            <img :src="getImageUrl(img.url)" class="w-full h-full object-cover" />
                                         </div>
                                     </div>
                                 </div>

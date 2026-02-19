@@ -21,6 +21,7 @@ import {
     Heart,
     ArrowRight
 } from 'lucide-vue-next'
+import { getImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,11 +49,13 @@ const participants = ref<Traveler[]>([
 ])
 
 const notes = ref('')
+const requestInvoice = ref(false)
+const paymentOption = ref<'full' | 'deposit' | 'installments'>('deposit')
 
 const fetchOffer = async () => {
     try {
         const offerId = route.params.offerId
-        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*`)
+        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*`)
         if (!response.ok) throw new Error('Offerta non trovata')
         const data = await response.json()
         const rawOffer = data.data.attributes || data.data
@@ -81,11 +84,11 @@ watch(user, (newUser) => {
 
 // Helpers (Consistent with TripDetailView)
 const imageUrl = computed(() => {
-    if (!trip.value?.image) return ''
+    if (!trip.value?.image) return getImageUrl(null)
     const img = trip.value.image
     const firstImage = Array.isArray(img) ? img[0] : img
     const url = firstImage?.url || firstImage?.attributes?.url || firstImage?.data?.attributes?.url || firstImage?.data?.url
-    return url ? `${apiUrl}${url}` : ''
+    return getImageUrl(url)
 })
 
 const averageRating = computed(() => {
@@ -128,8 +131,65 @@ const removeTraveler = (index: number) => {
     }
 }
 
-const totalAmount = computed(() => (offer.value?.price || 0) * participants.value.length)
+const totalAmount = computed(() => ((offer.value?.price || 0) + (offer.value?.depositPrice || 0)) * participants.value.length)
 const totalDeposit = computed(() => (offer.value?.depositPrice || 0) * participants.value.length)
+
+const installmentsAvailable = computed(() => {
+    if (offer.value?.allowInstallments !== true) return false
+    const configs = offer.value?.installmentConfigs
+    if (Array.isArray(configs) && configs.length > 0) {
+        const firstCfg = configs[0]
+        let firstDue: Date | null = null
+        if (firstCfg.dueDateType === 'relative' && offer.value?.startDate && firstCfg.relativeMonths) {
+            firstDue = new Date(offer.value.startDate)
+            firstDue.setMonth(firstDue.getMonth() - firstCfg.relativeMonths)
+        } else if (firstCfg.dueDate) {
+            firstDue = new Date(firstCfg.dueDate)
+        }
+        if (firstDue) {
+            const today = new Date()
+            today.setHours(0, 0, 0, 0)
+            firstDue.setHours(0, 0, 0, 0)
+            if (firstDue.getTime() < today.getTime()) return false
+        }
+    }
+    return true
+})
+const installmentsCount = computed(() => {
+    const configs = offer.value?.installmentConfigs
+    if (Array.isArray(configs) && configs.length > 0) return configs.length
+    return offer.value?.installmentsCount || 3
+})
+// Installments apply only to the price (excluding deposit)
+const totalPriceOnly = computed(() => (offer.value?.price || 0) * participants.value.length)
+
+const installmentAmount = computed(() => {
+    if (!installmentsAvailable.value) return 0
+    const configs = offer.value?.installmentConfigs
+    const count = (Array.isArray(configs) && configs.length > 0) ? configs.length : (offer.value?.installmentsCount || 3)
+    // If evenly divisible, use clean division
+    if (totalPriceOnly.value % count === 0) {
+        return totalPriceOnly.value / count
+    }
+    // Otherwise, use percentage-based calculation
+    if (Array.isArray(configs) && configs.length > 0) {
+        const firstPct = Number(configs[0].percentage) || 0
+        return Math.round((totalPriceOnly.value * firstPct / 100) * 100) / 100
+    }
+    return Math.floor((totalPriceOnly.value / count) * 100) / 100
+})
+
+const firstPaymentAmount = computed(() => {
+    if (paymentOption.value === 'full') return totalAmount.value
+    if (paymentOption.value === 'installments' && installmentsAvailable.value) return totalDeposit.value
+    return totalDeposit.value // deposit
+})
+
+const firstPaymentLabel = computed(() => {
+    if (paymentOption.value === 'full') return 'Totale da pagare'
+    if (paymentOption.value === 'installments') return 'Acconto ora'
+    return 'Acconto ora'
+})
 
 const isFormValid = computed(() => {
     return participants.value.every(p =>
@@ -160,17 +220,20 @@ const submitBooking = async () => {
     try {
         const payload = {
             data: {
-                status: 'pending',
+                bookingStatus: 'pending',
                 totalPrice: totalAmount.value,
                 depositPrice: totalDeposit.value,
                 notes: notes.value,
+                requestInvoice: requestInvoice.value,
+                paymentOption: paymentOption.value,
                 participants: participants.value,
                 user: user.value?.documentId || user.value?.id,
                 offer: route.params.offerId
             }
         }
 
-        console.log('[Booking] POST payload:', payload)
+        console.log('[Booking] Request Invoice value:', requestInvoice.value)
+        console.log('[Booking] POST payload:', JSON.stringify(payload, null, 2))
 
         const response = await fetch(`${apiUrl}/api/bookings`, {
             method: 'POST',
@@ -371,6 +434,7 @@ onMounted(fetchOffer)
                                     class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-6 focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"></textarea>
                             </div>
 
+
                             <!-- Submission Error -->
                             <div v-if="error"
                                 class="bg-red-50 border border-red-100 text-red-600 p-6 rounded-2xl font-medium flex items-center gap-3">
@@ -412,13 +476,99 @@ onMounted(fetchOffer)
                                                     'partecipante' : 'partecipanti' }} ({{ offer.price }}€ cad.)</span>
                                         </div>
 
+                                        <!-- Invoice Request (Relocated to Sidebar) -->
+                                        <div class="pt-2">
+                                            <label
+                                                class="flex items-start gap-3 cursor-pointer group p-3 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                                                <div class="relative flex items-center mt-1">
+                                                    <input v-model="requestInvoice" type="checkbox"
+                                                        class="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-200 bg-white transition-all checked:border-primary checked:bg-primary" />
+                                                    <svg class="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 stroke-white opacity-0 transition-opacity peer-checked:opacity-100"
+                                                        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+                                                        fill="none" stroke="currentColor" stroke-width="4"
+                                                        stroke-linecap="round" stroke-linejoin="round">
+                                                        <polyline points="20 6 9 17 4 12"></polyline>
+                                                    </svg>
+                                                </div>
+                                                <div class="flex flex-col">
+                                                    <span
+                                                        class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                                        Richiedo la fattura
+                                                    </span>
+                                                    <span
+                                                        class="text-[11px] text-slate-500 font-medium leading-tight mt-0.5">
+                                                        Inserirai i dati di fatturazione su Stripe
+                                                    </span>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Payment Option Selector -->
+                                        <div class="border-t border-slate-100 pt-5">
+                                            <span
+                                                class="text-xs text-slate-500 font-bold uppercase tracking-wider mb-3 block">Modalità
+                                                di
+                                                pagamento</span>
+
+                                            <div class="space-y-2">
+                                                <!-- Option: Deposit -->
+                                                <label
+                                                    class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+                                                    :class="paymentOption === 'deposit' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
+                                                    <input type="radio" v-model="paymentOption" value="deposit"
+                                                        class="accent-primary w-4 h-4" />
+                                                    <div class="flex-1">
+                                                        <span class="text-sm font-bold text-slate-800">Acconto +
+                                                            Saldo</span>
+                                                        <p class="text-[11px] text-slate-500 leading-tight">Paga {{
+                                                            totalDeposit }}€ ora, il
+                                                            resto dopo</p>
+                                                    </div>
+                                                </label>
+
+
+                                                <!-- Option: Installments (only if offer allows it) -->
+                                                <label v-if="installmentsAvailable"
+                                                    class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+                                                    :class="paymentOption === 'installments' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
+                                                    <input type="radio" v-model="paymentOption" value="installments"
+                                                        class="accent-primary w-4 h-4" />
+                                                    <div class="flex-1">
+                                                        <span class="text-sm font-bold text-slate-800">Paga a
+                                                            rate</span>
+                                                        <p class="text-[11px] text-slate-500 leading-tight">Acconto {{
+                                                            totalDeposit }}€ + {{
+                                                                installmentsCount }} rate da
+                                                            {{ installmentAmount }}€</p>
+                                                    </div>
+                                                </label>
+                                            </div>
+
+                                            <!-- Option: Full -->
+                                            <label
+                                                class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all"
+                                                :class="paymentOption === 'full' ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
+                                                <input type="radio" v-model="paymentOption" value="full"
+                                                    class="accent-primary w-4 h-4" />
+                                                <div class="flex-1">
+                                                    <span class="text-sm font-bold text-slate-800">Paga tutto
+                                                        ora</span>
+                                                    <p class="text-[11px] text-slate-500 leading-tight">{{
+                                                        totalAmount }}€ in un'unica
+                                                        soluzione</p>
+                                                </div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Dynamic Amount & Button -->
                                         <div class="border-t border-slate-100 pt-5">
                                             <div class="flex items-center justify-between mb-4">
                                                 <span
-                                                    class="text-sm text-slate-500 font-bold uppercase tracking-wider">Acconto
-                                                    ora</span>
-                                                <span class="text-2xl font-black text-primary">{{ totalDeposit
-                                                    }}€</span>
+                                                    class="text-sm text-slate-500 font-bold uppercase tracking-wider">{{
+                                                        firstPaymentLabel
+                                                    }}</span>
+                                                <span class="text-2xl font-black text-primary">{{ firstPaymentAmount
+                                                }}€</span>
                                             </div>
 
                                             <Button @click="submitBooking"
@@ -434,7 +584,7 @@ onMounted(fetchOffer)
                                                 <span v-else-if="success">Inviato con successo</span>
                                                 <span v-else-if="isSoldOut">Sold Out</span>
                                                 <span v-else-if="!isFormValid">Compila tutti i campi</span>
-                                                <span v-else>Conferma e Blocca</span>
+                                                <span v-else>Conferma e paga</span>
                                                 <ArrowRight v-if="!submitting && !success && !isSoldOut && isFormValid"
                                                     class="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
                                             </Button>

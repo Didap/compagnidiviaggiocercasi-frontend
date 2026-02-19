@@ -80,9 +80,8 @@ onUnmounted(() => {
         </RouterLink>
         <RouterLink to="/profilo" class="flex items-center gap-2 text-secondary hover:text-primary transition-colors">
           <Button variant="outline"
-            class="rounded-full px-6 border-secondary text-secondary hover:bg-secondary/5 transition-all">
+            class="rounded-full border-secondary text-secondary hover:bg-secondary/5 transition-all">
             <UserCircle class="w-5 h-5" />
-            <span class="font-medium text-sm">{{ fullName }}</span>
           </Button>
         </RouterLink>
         <Button @click="logout"

@@ -9,6 +9,7 @@ import { useToast } from '@/composables/useToast'
 import {
     Save, Loader2, ArrowLeft, Plus, Trash2, ImagePlus, GripVertical, Upload,
 } from 'lucide-vue-next'
+import { getImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,7 +66,7 @@ const fetchTrip = async () => {
         const img = trip.image
         if (img) {
             const url = img.url || img?.data?.attributes?.url
-            if (url) existingImageUrl.value = `${apiUrl}${url}`
+            if (url) existingImageUrl.value = getImageUrl(url)
             existingImageId.value = img.id || img?.data?.id || null
         }
         // Gallery
@@ -74,7 +75,7 @@ const fetchTrip = async () => {
             const items = Array.isArray(gal) ? gal : gal?.data || []
             existingGalleryUrls.value = items.map((g: any) => {
                 const url = g.url || g?.attributes?.url
-                return url ? `${apiUrl}${url}` : ''
+                return getImageUrl(url)
             }).filter(Boolean)
             existingGalleryIds.value = items.map((g: any) => g.id || g?.data?.id).filter(Boolean)
         }

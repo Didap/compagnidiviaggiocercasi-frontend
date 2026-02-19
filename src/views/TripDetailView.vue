@@ -22,6 +22,7 @@ import {
   Tag,
   ChevronDown,
 } from 'lucide-vue-next'
+import { getImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -55,6 +56,8 @@ const fetchTrip = async () => {
   }
 }
 
+import { isOfferBookable } from '@/utils/date'
+
 // Offers
 const offers = computed(() => {
   const raw = trip.value?.offers
@@ -62,16 +65,26 @@ const offers = computed(() => {
   const list = Array.isArray(raw) ? raw : raw?.data?.map((o: any) => o.attributes || o) || []
   const mapped = list.map((o: any) => o.attributes || o)
 
-  // Sort: Available first, then cheapest
+  // Sort: Bookable first, then Available, then Cheapest
   return mapped.sort((a: any, b: any) => {
     const aSeats = Math.max(0, (a.maxParticipants || 0) - (a.occupiedSeats || 0))
     const bSeats = Math.max(0, (b.maxParticipants || 0) - (b.occupiedSeats || 0))
+
+    const aBookable = isOfferBookable(a)
+    const bBookable = isOfferBookable(b)
+
+    // Priority 1: Time constraint (Bookable first)
+    if (aBookable && !bBookable) return -1
+    if (!aBookable && bBookable) return 1
+
+    // Priority 2: Availability (Seats)
     const aAvailable = aSeats > 0
     const bAvailable = bSeats > 0
 
     if (aAvailable && !bAvailable) return -1
     if (!aAvailable && bAvailable) return 1
 
+    // Priority 3: Price
     return (a.price ?? Infinity) - (b.price ?? Infinity)
   })
 })
@@ -86,11 +99,11 @@ const cheapestPrice = computed(() => {
 
 // Image
 const imageUrl = computed(() => {
-  if (!trip.value?.image) return ''
+  if (!trip.value?.image) return getImageUrl(null)
   const img = trip.value.image
   const firstImage = Array.isArray(img) ? img[0] : img
   const url = firstImage?.url || firstImage?.attributes?.url || firstImage?.data?.attributes?.url || firstImage?.data?.url
-  return url ? `${apiUrl}${url}` : ''
+  return getImageUrl(url)
 })
 
 const galleryUrls = computed(() => {
@@ -99,8 +112,8 @@ const galleryUrls = computed(() => {
   const images = Array.isArray(gallery) ? gallery : gallery?.data || []
   return images.map((img: any) => {
     const url = img?.url || img?.attributes?.url
-    return url ? `${apiUrl}${url}` : null
-  }).filter(Boolean)
+    return getImageUrl(url)
+  })
 })
 
 // Reviews
@@ -378,7 +391,8 @@ onMounted(fetchTrip)
                     <div class="flex items-start gap-5">
                       <!-- Avatar -->
                       <div class="flex-shrink-0">
-                        <div class="w-14 h-14 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 shadow-inner">
+                        <div
+                          class="w-14 h-14 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 shadow-inner">
                           <span class="text-xl font-black text-primary">{{ review.user.charAt(0).toUpperCase() }}</span>
                         </div>
                       </div>
@@ -387,15 +401,16 @@ onMounted(fetchTrip)
                       <div class="flex-grow min-w-0">
                         <div class="flex flex-wrap items-center justify-between gap-y-2 mb-1">
                           <div class="flex items-center gap-2">
-                             <h3 class="text-lg font-bold text-slate-900 truncate pr-2">
-                               {{ review.user.split('@')[0] }}
-                             </h3>
-                             <div class="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-green-100">
-                                <Shield class="w-3 h-3" />
-                                <span>Verificato</span>
-                             </div>
+                            <h3 class="text-lg font-bold text-slate-900 truncate pr-2">
+                              {{ review.user.split('@')[0] }}
+                            </h3>
+                            <div
+                              class="flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border border-green-100">
+                              <Shield class="w-3 h-3" />
+                              <span>Verificato</span>
+                            </div>
                           </div>
-                          
+
                           <!-- Rating -->
                           <div class="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
                             <Star v-for="s in 5" :key="s" class="w-3.5 h-3.5"
@@ -405,13 +420,17 @@ onMounted(fetchTrip)
 
                         <!-- Metadata -->
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mb-4">
-                           <span v-if="review.createdAt">
-                              {{ new Date(review.createdAt).toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) }}
-                           </span>
-                           <span v-if="review.travelPeriod" class="flex items-center gap-1.5 text-primary font-medium bg-primary/5 px-2.5 py-1 rounded-md">
-                              <Calendar class="w-3.5 h-3.5" />
-                              Ha viaggiato a {{ review.travelPeriod }}
-                           </span>
+                          <span v-if="review.createdAt">
+                            {{ new Date(review.createdAt).toLocaleDateString('it-IT', {
+                              day: 'numeric', month: 'long',
+                              year: 'numeric'
+                            }) }}
+                          </span>
+                          <span v-if="review.travelPeriod"
+                            class="flex items-center gap-1.5 text-primary font-medium bg-primary/5 px-2.5 py-1 rounded-md">
+                            <Calendar class="w-3.5 h-3.5" />
+                            Ha viaggiato a {{ review.travelPeriod }}
+                          </span>
                         </div>
 
                         <!-- Content -->
@@ -507,11 +526,12 @@ onMounted(fetchTrip)
 
                       <Button @click="handleBooking(selectedOffer.documentId)"
                         class="w-full rounded-2xl h-14 text-base font-bold shadow-lg hover:shadow-primary/30 transition-all duration-300 flex items-center justify-center gap-2 group/btn"
-                        :variant="getAvailableSeats(selectedOffer) === 0 ? 'secondary' : 'default'"
-                        :disabled="getAvailableSeats(selectedOffer) === 0" size="lg">
-                        <span v-if="getAvailableSeats(selectedOffer) === 0">Viaggio al completo</span>
+                        :variant="getAvailableSeats(selectedOffer) === 0 || !isOfferBookable(selectedOffer) ? 'secondary' : 'default'"
+                        :disabled="getAvailableSeats(selectedOffer) === 0 || !isOfferBookable(selectedOffer)" size="lg">
+                        <span v-if="!isOfferBookable(selectedOffer)">Prenotazioni Chiuse</span>
+                        <span v-else-if="getAvailableSeats(selectedOffer) === 0">Viaggio al completo</span>
                         <span v-else>Blocca il posto con {{ selectedOffer.depositPrice }}€</span>
-                        <ArrowRight v-if="getAvailableSeats(selectedOffer) > 0"
+                        <ArrowRight v-if="getAvailableSeats(selectedOffer) > 0 && isOfferBookable(selectedOffer)"
                           class="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
                       </Button>
                     </div>

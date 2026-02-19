@@ -28,6 +28,7 @@ import {
     XCircle,
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
+import { getImageUrl } from '@/utils/image'
 
 
 const router = useRouter()
@@ -68,7 +69,7 @@ watch(myBookings, (newBookings) => {
         if (id && !tripMap.has(id.toString())) {
             tripMap.set(id.toString(), {
                 ...trip,
-                bookingStatus: b.status
+                bookingStatus: b.bookingStatus
             })
         }
     }
@@ -87,7 +88,7 @@ const avatarUrl = computed(() => {
     if (!user.value?.avatar) return null
     const av = user.value.avatar
     const url = av?.url || av?.data?.attributes?.url || av?.attributes?.url
-    return url ? `${apiUrl}${url}` : null
+    return getImageUrl(url)
 })
 
 // Computed: initials fallback
@@ -138,7 +139,7 @@ const allGalleryImages = computed(() => {
         const items = Array.isArray(gallery) ? gallery : gallery?.data || []
         for (const img of items) {
             const url = img?.url || img?.attributes?.url
-            if (url) images.push(`${apiUrl}${url}`)
+            if (url) images.push(getImageUrl(url))
         }
     }
     return images
@@ -147,14 +148,14 @@ const allGalleryImages = computed(() => {
 // Computed: trip image URL helper
 const getTripImageUrl = (trip: any) => {
     const img = trip.image
-    if (!img) return ''
+    if (!img) return getImageUrl(null)
     const firstImage = Array.isArray(img) ? img[0] : img
     const url =
         firstImage?.url ||
         firstImage?.attributes?.url ||
         firstImage?.data?.attributes?.url ||
         firstImage?.data?.url
-    return url ? `${apiUrl}${url}` : ''
+    return getImageUrl(url)
 }
 
 import { formatDistance, isBefore, isAfter } from 'date-fns'
@@ -171,21 +172,21 @@ const getReviewForBooking = (booking: any) => {
     const offer = booking.offer
     const trip = offer?.trip
     if (!trip) return null
-    
+
     // Use documentId for reliable matching
     const tripDocId = trip.documentId
-    
+
     // Find review where review.trip.documentId matches tripDocId
     return userReviews.value.find(r => {
         // Handle various response structures (flat or nested)
         const rAttrs = r.attributes || r
         const rTrip = rAttrs.trip?.data?.attributes || rAttrs.trip?.data || rAttrs.trip
-        
+
         return rTrip?.documentId === tripDocId
     })?.attributes || userReviews.value.find(r => {
-         const rAttrs = r.attributes || r
-         const rTrip = rAttrs.trip?.data?.attributes || rAttrs.trip?.data || rAttrs.trip
-        
+        const rAttrs = r.attributes || r
+        const rTrip = rAttrs.trip?.data?.attributes || rAttrs.trip?.data || rAttrs.trip
+
         return rTrip?.documentId === tripDocId
     })
 }
@@ -252,8 +253,8 @@ const getTripFromBooking = (booking: any) => {
 }
 
 const getTripStatus = (booking: any) => {
-    if (booking.status === 'cancelled') return 'cancelled'
-    
+    if (booking.bookingStatus === 'cancelled') return 'cancelled'
+
     const offer = booking.offer
     if (!offer || !offer.startDate || !offer.endDate) return 'unknown'
 
@@ -273,7 +274,7 @@ const getTripStatus = (booking: any) => {
 
 const getStatusText = (booking: any) => {
     const status = getTripStatus(booking)
-    switch(status) {
+    switch (status) {
         case 'imminent': return 'In Partenza!'
         case 'future': return 'In Arrivo'
         case 'ongoing': return 'In Corso'
@@ -286,10 +287,10 @@ const getStatusText = (booking: any) => {
 const getCountdown = (booking: any) => {
     const offer = booking.offer
     if (!offer?.startDate) return ''
-    
-    return formatDistance(new Date(offer.startDate), new Date(), { 
-        locale: it, 
-        addSuffix: true 
+
+    return formatDistance(new Date(offer.startDate), new Date(), {
+        locale: it,
+        addSuffix: true
     })
 }
 
@@ -452,7 +453,8 @@ onMounted(async () => {
             <!-- Profile Header -->
             <section class="pt-28 pb-12 px-6 relative overflow-hidden">
                 <div v-if="saveSuccess" class="container mx-auto mb-6">
-                    <div class="bg-green-50 border border-green-100 text-green-700 px-6 py-4 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+                    <div
+                        class="bg-green-50 border border-green-100 text-green-700 px-6 py-4 rounded-2xl flex items-center gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
                         <CheckCircle2 class="w-6 h-6 text-green-600" />
                         <div>
                             <p class="font-bold">Pagamento confermato!</p>
@@ -615,68 +617,83 @@ onMounted(async () => {
                         <!-- My Bookings (Redesigned) -->
                         <div v-if="myBookings.length > 0">
                             <h2 class="text-2xl font-bold text-slate-900 mb-6">I Miei Viaggi</h2>
-                            
+
                             <!-- Bookings List -->
                             <div class="space-y-6">
                                 <Card v-for="booking in paginatedBookings" :key="booking.id"
                                     class="rounded-3xl border-none shadow-sm overflow-hidden bg-white relative">
                                     <!-- Status Banner for Ongoing -->
-                                    <div v-if="getTripStatus(booking) === 'ongoing'" class="bg-primary/10 px-6 py-2 flex items-center gap-2 text-primary font-bold text-sm">
+                                    <div v-if="getTripStatus(booking) === 'ongoing'"
+                                        class="bg-primary/10 px-6 py-2 flex items-center gap-2 text-primary font-bold text-sm">
                                         <Compass class="w-4 h-4 animate-pulse" />
                                         <span>Viaggio in corso! Goditi l'avventura.</span>
                                     </div>
 
                                     <div class="p-6 md:p-8">
                                         <!-- Header: Trip Info & Status -->
-                                        <div class="flex flex-col md:flex-row gap-6 mb-8 border-b border-slate-100 pb-8">
+                                        <div
+                                            class="flex flex-col md:flex-row gap-6 mb-8 border-b border-slate-100 pb-8">
                                             <!-- Image & Title -->
                                             <div class="flex gap-4 flex-1">
-                                                <div class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden shadow-sm flex-shrink-0">
-                                                    <img :src="getTripImageUrl(getTripFromBooking(booking))" 
-                                                         class="w-full h-full object-cover" />
+                                                <div
+                                                    class="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden shadow-sm flex-shrink-0">
+                                                    <img :src="getTripImageUrl(getTripFromBooking(booking))"
+                                                        class="w-full h-full object-cover" />
                                                 </div>
                                                 <div>
                                                     <h3 class="text-xl font-black text-slate-900 leading-tight mb-2">
                                                         {{ getTripFromBooking(booking).title }}
                                                     </h3>
-                                                    <div class="flex items-center gap-2 text-slate-500 font-medium text-sm">
+                                                    <div
+                                                        class="flex items-center gap-2 text-slate-500 font-medium text-sm">
                                                         <MapPin class="w-4 h-4 text-primary" />
                                                         <span>{{ getTripFromBooking(booking).destination }}</span>
                                                     </div>
-                                                    <div class="mt-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                                                        {{ formatDate(booking.offer?.startDate) }} - {{ formatDate(booking.offer?.endDate) }}
+                                                    <div
+                                                        class="mt-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                                                        {{ formatDate(booking.offer?.startDate) }} - {{
+                                                            formatDate(booking.offer?.endDate) }}
                                                     </div>
                                                 </div>
                                             </div>
 
                                             <!-- Status Indicator -->
                                             <div class="flex flex-col items-end gap-2">
-                                                 <Badge :class="{
+                                                <Badge :class="{
                                                     'bg-amber-100 text-amber-700': getTripStatus(booking) === 'future',
                                                     'bg-orange-100 text-orange-700 animate-pulse': getTripStatus(booking) === 'imminent',
                                                     'bg-primary/10 text-primary': getTripStatus(booking) === 'ongoing',
                                                     'bg-green-100 text-green-700': getTripStatus(booking) === 'completed',
                                                     'bg-red-100 text-red-700': getTripStatus(booking) === 'cancelled'
-                                                }" class="px-4 py-1.5 rounded-full border-none font-bold capitalize flex items-center gap-2">
-                                                    <Calendar v-if="['future', 'imminent'].includes(getTripStatus(booking))" class="w-4 h-4" />
-                                                    <Compass v-if="getTripStatus(booking) === 'ongoing'" class="w-4 h-4" />
-                                                    <CheckCircle2 v-if="getTripStatus(booking) === 'completed'" class="w-4 h-4" />
-                                                    <XCircle v-if="getTripStatus(booking) === 'cancelled'" class="w-4 h-4" />
+                                                }"
+                                                    class="px-4 py-1.5 rounded-full border-none font-bold capitalize flex items-center gap-2">
+                                                    <Calendar
+                                                        v-if="['future', 'imminent'].includes(getTripStatus(booking))"
+                                                        class="w-4 h-4" />
+                                                    <Compass v-if="getTripStatus(booking) === 'ongoing'"
+                                                        class="w-4 h-4" />
+                                                    <CheckCircle2 v-if="getTripStatus(booking) === 'completed'"
+                                                        class="w-4 h-4" />
+                                                    <XCircle v-if="getTripStatus(booking) === 'cancelled'"
+                                                        class="w-4 h-4" />
                                                     {{ getStatusText(booking) }}
                                                 </Badge>
-                                                
+
                                                 <!-- Countdown for Future/Imminent -->
-                                                <div v-if="['future', 'imminent'].includes(getTripStatus(booking))" class="text-xs font-medium text-slate-500 text-right">
+                                                <div v-if="['future', 'imminent'].includes(getTripStatus(booking))"
+                                                    class="text-xs font-medium text-slate-500 text-right">
                                                     Inizia {{ getCountdown(booking) }}
                                                 </div>
                                             </div>
                                         </div>
 
                                         <!-- Content based on Status -->
-                                        
+
                                         <!-- IMMINENT: Excited message -->
-                                        <div v-if="getTripStatus(booking) === 'imminent'" class="flex flex-col items-center justify-center py-8 text-center space-y-4">
-                                            <div class="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-2 animate-bounce">
+                                        <div v-if="getTripStatus(booking) === 'imminent'"
+                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                                            <div
+                                                class="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-2 animate-bounce">
                                                 <Calendar class="w-8 h-8 text-orange-500" />
                                             </div>
                                             <h4 class="text-lg font-bold text-slate-900">Ci siamo quasi! 🌍</h4>
@@ -687,13 +704,16 @@ onMounted(async () => {
                                         </div>
 
                                         <!-- FUTURE (Upcoming): Standard prep -->
-                                        <div v-else-if="getTripStatus(booking) === 'future'" class="flex flex-col items-center justify-center py-8 text-center space-y-4">
-                                            <div class="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-2">
+                                        <div v-else-if="getTripStatus(booking) === 'future'"
+                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                                            <div
+                                                class="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-2">
                                                 <Calendar class="w-8 h-8 text-amber-500" />
                                             </div>
                                             <h4 class="text-lg font-bold text-slate-900">Preparati a partire!</h4>
                                             <p class="text-slate-500 max-w-sm mx-auto">
-                                                Il tuo viaggio è confermato. Inizia a sognare e a preparare l'itinerario mentale.
+                                                Il tuo viaggio è confermato. Inizia a sognare e a preparare l'itinerario
+                                                mentale.
                                                 Ti manderemo i dettagli via email.
                                             </p>
                                         </div>
@@ -704,21 +724,27 @@ onMounted(async () => {
                                                 <div class="h-8 w-1 bg-primary rounded-full"></div>
                                                 <h4 class="text-lg font-bold text-slate-900">Programma del Viaggio</h4>
                                             </div>
-                                            
-                                            <div v-if="booking.offer?.itinerary?.length" class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                                                <div v-for="(day, idx) in booking.offer.itinerary" :key="idx" 
-                                                     class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+
+                                            <div v-if="booking.offer?.itinerary?.length"
+                                                class="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                <div v-for="(day, idx) in booking.offer.itinerary" :key="idx"
+                                                    class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                                                     <div class="flex items-start gap-4">
-                                                        <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center font-black text-primary text-xs shadow-sm flex-shrink-0 border border-primary/10">
+                                                        <div
+                                                            class="w-8 h-8 rounded-full bg-white flex items-center justify-center font-black text-primary text-xs shadow-sm flex-shrink-0 border border-primary/10">
                                                             {{ Number(idx) + 1 }}
                                                         </div>
                                                         <div>
-                                                            <h5 class="font-bold text-slate-900 mb-2">{{ day.title }}</h5>
+                                                            <h5 class="font-bold text-slate-900 mb-2">{{ day.title }}
+                                                            </h5>
                                                             <!-- Simple text rendering -->
-                                                            <div class="text-sm text-slate-600 leading-relaxed prose prose-sm max-w-none">
+                                                            <div
+                                                                class="text-sm text-slate-600 leading-relaxed prose prose-sm max-w-none">
                                                                 <template v-if="Array.isArray(day.description)">
-                                                                    <p v-for="(block, bIdx) in day.description" :key="bIdx">
-                                                                        {{ block.children?.map((c: any) => c.text).join('') }}
+                                                                    <p v-for="(block, bIdx) in day.description"
+                                                                        :key="bIdx">
+                                                                        {{block.children?.map((c: any) =>
+                                                                            c.text).join('')}}
                                                                     </p>
                                                                 </template>
                                                                 <span v-else>{{ day.description }}</span>
@@ -733,46 +759,58 @@ onMounted(async () => {
                                         </div>
 
                                         <!-- COMPLETED: Review -->
-                                        <div v-else-if="getTripStatus(booking) === 'completed'" class="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                                        <div v-else-if="getTripStatus(booking) === 'completed'"
+                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4">
                                             <template v-if="getReviewForBooking(booking)">
-                                                <div class="bg-amber-50 rounded-2xl p-6 w-full max-w-md border border-amber-100">
+                                                <div
+                                                    class="bg-amber-50 rounded-2xl p-6 w-full max-w-md border border-amber-100">
                                                     <div class="flex items-center justify-center gap-1 mb-3">
                                                         <Star v-for="s in 5" :key="s" class="w-5 h-5"
                                                             :class="s <= getReviewForBooking(booking).rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'" />
                                                     </div>
-                                                    <p class="text-slate-700 italic leading-relaxed">"{{ getReviewForBooking(booking).content }}"</p>
-                                                    <p class="text-xs text-slate-400 mt-3 font-bold uppercase tracking-wider">La tua recensione</p>
+                                                    <p class="text-slate-700 italic leading-relaxed">"{{
+                                                        getReviewForBooking(booking).content }}"</p>
+                                                    <p
+                                                        class="text-xs text-slate-400 mt-3 font-bold uppercase tracking-wider">
+                                                        La tua recensione</p>
                                                 </div>
                                             </template>
                                             <template v-else>
-                                                <div class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-2">
+                                                <div
+                                                    class="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mb-2">
                                                     <CheckCircle2 class="w-8 h-8 text-green-600" />
                                                 </div>
                                                 <h4 class="text-lg font-bold text-slate-900">Bentornato a casa!</h4>
                                                 <p class="text-slate-500 max-w-sm mx-auto mb-4">
-                                                    Speriamo che il viaggio sia stato indimenticabile. Raccontaci la tua esperienza!
+                                                    Speriamo che il viaggio sia stato indimenticabile. Raccontaci la tua
+                                                    esperienza!
                                                 </p>
-                                                <Button @click="openReview(booking)" variant="outline" class="rounded-full px-8 border-slate-200 hover:border-primary hover:text-primary transition-colors">
+                                                <Button @click="openReview(booking)" variant="outline"
+                                                    class="rounded-full px-8 border-slate-200 hover:border-primary hover:text-primary transition-colors">
                                                     Lascia una recensione
                                                 </Button>
                                             </template>
                                         </div>
-                                        
+
                                         <!-- CANCELLED -->
-                                        <div v-else-if="getTripStatus(booking) === 'cancelled'" class="flex flex-col items-center justify-center py-8 text-center space-y-4 opacity-60">
-                                            <div class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-2">
+                                        <div v-else-if="getTripStatus(booking) === 'cancelled'"
+                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4 opacity-60">
+                                            <div
+                                                class="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-2">
                                                 <XCircle class="w-8 h-8 text-red-500" />
                                             </div>
                                             <h4 class="text-lg font-bold text-slate-900">Prenotazione Cancellata</h4>
                                             <p class="text-slate-500 max-w-sm mx-auto">
-                                                Questa prenotazione è stata annullata. Se pensi ci sia un errore, contattaci.
+                                                Questa prenotazione è stata annullata. Se pensi ci sia un errore,
+                                                contattaci.
                                             </p>
                                         </div>
                                     </div>
 
                                     <!-- Action Footer (Always Visible) -->
                                     <div class="mt-6 pt-4 border-t border-slate-100 flex justify-center">
-                                        <Button @click="openDetail(booking)" variant="outline" class="rounded-full w-full sm:w-auto border-slate-200 text-slate-600 hover:text-primary hover:border-primary transition-colors">
+                                        <Button @click="openDetail(booking)" variant="outline"
+                                            class="rounded-full w-full sm:w-auto border-slate-200 text-slate-600 hover:text-primary hover:border-primary transition-colors">
                                             Vedi Dettagli Viaggio
                                         </Button>
                                     </div>
@@ -781,20 +819,14 @@ onMounted(async () => {
 
                             <!-- Pagination Controls -->
                             <div v-if="totalPages > 1" class="flex justify-center items-center gap-6 mt-8">
-                                <Button 
-                                    @click="currentPage--" 
-                                    :disabled="currentPage === 1"
-                                    variant="outline" 
+                                <Button @click="currentPage--" :disabled="currentPage === 1" variant="outline"
                                     class="rounded-full w-12 h-12 p-0 flex items-center justify-center disabled:opacity-50 hover:bg-slate-100 transition-colors">
                                     <ChevronLeft class="w-6 h-6" />
                                 </Button>
                                 <span class="text-sm font-bold text-slate-600">
                                     Viaggio {{ currentPage }} di {{ totalPages }}
                                 </span>
-                                <Button 
-                                    @click="currentPage++" 
-                                    :disabled="currentPage === totalPages"
-                                    variant="outline" 
+                                <Button @click="currentPage++" :disabled="currentPage === totalPages" variant="outline"
                                     class="rounded-full w-12 h-12 p-0 flex items-center justify-center disabled:opacity-50 hover:bg-slate-100 transition-colors">
                                     <ChevronRight class="w-6 h-6" />
                                 </Button>
@@ -802,19 +834,11 @@ onMounted(async () => {
                         </div>
 
                         <!-- Trip Detail Modal -->
-                        <TripDetailDialog 
-                            :isOpen="isDetailOpen" 
-                            :booking="selectedBooking" 
-                            @close="closeDetail" 
-                        />
+                        <TripDetailDialog :isOpen="isDetailOpen" :booking="selectedBooking" @close="closeDetail" />
 
                         <!-- Review Modal -->
-                        <ReviewDialog 
-                            :isOpen="isReviewOpen" 
-                            :booking="reviewBooking" 
-                            @close="closeReview" 
-                            @submitted="fetchMyTrips"
-                        />
+                        <ReviewDialog :isOpen="isReviewOpen" :booking="reviewBooking" @close="closeReview"
+                            @submitted="fetchMyTrips" />
 
                         <!-- My Trips (Grid) -->
                         <div>

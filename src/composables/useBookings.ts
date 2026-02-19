@@ -18,7 +18,8 @@ export function useBookings() {
                     'filters[user][id][$eq]': user.value.id,
                     'populate[participants]': '*',
                     'populate[offer][populate][trip][populate]': '*',
-                    'populate[offer][populate][itinerary]': '*'
+                    'populate[offer][populate][itinerary]': '*',
+                    'populate[paymentSteps]': '*',
                 }
             })
 

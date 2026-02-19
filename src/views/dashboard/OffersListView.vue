@@ -1,10 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
+
+import {
+    Select, SelectContent, SelectItem, SelectTrigger, SelectValue
+} from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar'
+import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import { parseDate, type DateValue } from '@internationalized/date'
 import {
     Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar, Eye,
 } from 'lucide-vue-next'
@@ -35,6 +45,15 @@ const editingId = ref<string | null>(null)
 const saving = ref(false)
 const formError = ref<string | null>(null)
 
+interface InstallmentConfig {
+    name: string
+    percentage: number
+    amount: number
+    dueDateType: 'relative' | 'precise'
+    relativeMonths: number
+    dueDate: string
+}
+
 const form = ref({
     trip: '',
     price: '',
@@ -43,11 +62,13 @@ const form = ref({
     endDate: '',
     maxParticipants: '',
     occupiedSeats: '0',
+    allowInstallments: false,
+    installmentConfigs: [] as InstallmentConfig[],
     itinerary: [] as { title: string; description: string }[]
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', itinerary: [] }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[] }
     editingId.value = null
     formError.value = null
 }
@@ -67,6 +88,21 @@ const openEdit = (offer: any) => {
         endDate: offer.endDate || '',
         maxParticipants: String(offer.maxParticipants || ''),
         occupiedSeats: String(offer.occupiedSeats || '0'),
+        allowInstallments: offer.allowInstallments || false,
+        installmentConfigs: Array.isArray(offer.installmentConfigs)
+            ? offer.installmentConfigs.map((c: any) => {
+                const price = Number(offer.price) || 0
+                const pct = Number(c.percentage) || 0
+                return {
+                    name: c.name || '',
+                    percentage: pct,
+                    amount: c.amount != null ? Number(c.amount) : Math.round(price * pct / 100 * 100) / 100,
+                    dueDateType: c.dueDateType || 'relative',
+                    relativeMonths: c.relativeMonths ?? 2,
+                    dueDate: c.dueDate || ''
+                }
+            })
+            : [],
         itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : []
     }
     formError.value = null
@@ -96,7 +132,7 @@ const fetchData = async () => {
     loading.value = true
     try {
         const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&sort=createdAt:desc`, {
+            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&sort=createdAt:desc`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             }),
             fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {
@@ -114,6 +150,223 @@ const fetchData = async () => {
     }
 }
 
+// Installment Helpers
+const getPrice = () => parseFloat(form.value.price) || 0
+
+const recalcAmounts = () => {
+    const price = getPrice()
+    const configs = form.value.installmentConfigs
+    const count = configs.length
+    if (count === 0 || price === 0) return
+    const evenAmount = Math.floor((price / count) * 100) / 100
+    let usedSum = 0
+    configs.forEach((c, i) => {
+        const isLast = i === count - 1
+        c.amount = isLast ? Math.round((price - usedSum) * 100) / 100 : evenAmount
+        usedSum += c.amount
+        c.percentage = Math.round((c.amount / price) * 1000) / 10
+    })
+}
+
+const addInstallment = () => {
+    const configs = form.value.installmentConfigs
+    const newCount = configs.length + 1
+
+    // Calculate smart default for relative date
+    let newRelative = 1
+    let newType: 'relative' | 'precise' = 'relative'
+
+    if (configs.length > 0) {
+        const last = configs[configs.length - 1]
+        if (last && last.dueDateType === 'relative' && last.relativeMonths) {
+            const max = last.relativeMonths - 1
+            if (max < 1) {
+                newType = 'precise'
+                newRelative = 1
+            } else {
+                newRelative = max
+            }
+        }
+    } else {
+        newRelative = 2
+    }
+
+    configs.push({
+        name: `Rata ${newCount}`,
+        percentage: 0,
+        amount: 0,
+        dueDateType: newType,
+        relativeMonths: newRelative,
+        dueDate: ''
+    })
+
+    recalcAmounts()
+}
+
+watch(() => form.value.allowInstallments, (val) => {
+    if (val && form.value.installmentConfigs.length === 0) {
+        addInstallment()
+    }
+})
+
+// Recalculate amounts when price changes
+watch(() => form.value.price, () => {
+    if (form.value.installmentConfigs.length > 0) {
+        recalcAmounts()
+    }
+})
+
+const removeInstallment = (index: number) => {
+    form.value.installmentConfigs.splice(index, 1)
+    recalcAmounts()
+}
+
+const handleAmountUpdate = (changedIndex: number, newAmount: number) => {
+    const configs = form.value.installmentConfigs
+    const price = getPrice()
+    if (configs.length <= 1 || price === 0) return
+
+    const cfg = configs[changedIndex]
+    if (!cfg) return
+
+    // Clamp to [0, price]
+    cfg.amount = Math.max(0, Math.min(newAmount, price))
+
+    // Distribute the remaining balance among the other installments
+    const remaining = price - cfg.amount
+    const otherIndices: number[] = []
+    for (let i = 0; i < configs.length; i++) { if (i !== changedIndex) otherIndices.push(i) }
+    const otherSum = otherIndices.reduce((s, i) => s + (configs[i]?.amount ?? 0), 0)
+
+    if (otherSum === 0 || otherIndices.length === 0) {
+        // Even split among others
+        const share = Math.floor((remaining / otherIndices.length) * 100) / 100
+        let used = 0
+        otherIndices.forEach((idx, j) => {
+            const c = configs[idx]
+            if (!c) return
+            const isLast = j === otherIndices.length - 1
+            c.amount = isLast ? Math.round((remaining - used) * 100) / 100 : share
+            used += c.amount
+        })
+    } else {
+        // Proportional distribution
+        let used = 0
+        otherIndices.forEach((idx, j) => {
+            const c = configs[idx]
+            if (!c) return
+            const isLast = j === otherIndices.length - 1
+            c.amount = isLast
+                ? Math.round((remaining - used) * 100) / 100
+                : Math.round((c.amount / otherSum * remaining) * 100) / 100
+            used += c.amount
+        })
+    }
+
+    // Recalculate percentages from amounts
+    configs.forEach(c => {
+        c.percentage = Math.round((c.amount / price) * 1000) / 10
+    })
+}
+
+// Date helpers
+const getInstallmentDate = (cfg: InstallmentConfig): Date | null => {
+    if (cfg.dueDateType === 'relative' && form.value.startDate && cfg.relativeMonths) {
+        const d = new Date(form.value.startDate)
+        d.setMonth(d.getMonth() - cfg.relativeMonths)
+        return d
+    }
+    if (cfg.dueDateType === 'precise' && cfg.dueDate) {
+        return new Date(cfg.dueDate)
+    }
+    return null
+}
+
+const dateErrors = computed(() => {
+    const errors: Record<number, string> = {}
+    const configs = form.value.installmentConfigs
+    for (let i = 1; i < configs.length; i++) {
+        const prevCfg = configs[i - 1]
+        const currCfg = configs[i]
+
+        if (!prevCfg || !currCfg) continue
+
+        const prev = getInstallmentDate(prevCfg)
+        const curr = getInstallmentDate(currCfg)
+
+        if (prev && curr) {
+            // Check if current is before previous (ignore time components for safety)
+            const p = new Date(prev).setHours(0, 0, 0, 0)
+            const c = new Date(curr).setHours(0, 0, 0, 0)
+            if (c <= p) {
+                errors[i] = 'Data non valida (deve essere successiva alla precedente)'
+            }
+        }
+    }
+    return errors
+})
+
+const getAvailableMonths = (index: number) => {
+    if (index === 0) return Array.from({ length: 12 }, (_, i) => i + 1)
+
+    // For subsequent installments, max months is strictly less than previous
+    const configs = form.value.installmentConfigs
+    const prev = configs[index - 1]
+
+    if (prev && prev.dueDateType === 'relative' && prev.relativeMonths) {
+        // If previous is "4 months before", current can be at most 3
+        const max = prev.relativeMonths - 1
+        if (max < 1) return [] // No relative months available (must use precise)
+        return Array.from({ length: max }, (_, i) => i + 1)
+    }
+
+    // Fallback if previous is precise or undefined (maybe allow all?)
+    // For safety/strictness, if prev is precise we can't easily limit relative without recalc
+    // Let's return full range but validation will catch errors
+    return Array.from({ length: 12 }, (_, i) => i + 1)
+}
+
+
+const getCalendarDate = (dateStr: string): DateValue | undefined => {
+    if (!dateStr) return undefined
+    try {
+        return parseDate(dateStr)
+    } catch (e) {
+        return undefined
+    }
+}
+
+const setCalendarDate = (val: DateValue | undefined, cfg: InstallmentConfig) => {
+    if (val) {
+        cfg.dueDate = val.toString()
+        cfg.dueDateType = 'precise'
+    } else {
+        cfg.dueDate = ''
+    }
+}
+
+const setFormDate = (val: DateValue | undefined, field: 'startDate' | 'endDate') => {
+    if (val) {
+        form.value[field] = val.toString()
+    } else {
+        form.value[field] = ''
+    }
+}
+
+
+
+const getPreviewDate = (cfg: InstallmentConfig) => {
+    if (cfg.dueDateType === 'relative' && form.value.startDate) {
+        const d = new Date(form.value.startDate)
+        d.setMonth(d.getMonth() - cfg.relativeMonths)
+        return d.toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+    }
+    if (cfg.dueDateType === 'precise' && cfg.dueDate) {
+        return new Date(cfg.dueDate).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
+    }
+    return '—'
+}
+
 // Itinerary Helpers
 const addDay = () => {
     form.value.itinerary.push({ title: '', description: '' })
@@ -129,21 +382,21 @@ const importTripItinerary = async () => {
         setTimeout(() => { formError.value = null }, 3000)
         return
     }
-    
+
     // Find selected trip ID/DocumentID
     const tripId = form.value.trip
-    
+
     try {
         // We need to fetch the trip's itinerary
         const res = await fetch(`${apiUrl}/api/trips/${tripId}?populate[itinerary]=*`, {
             headers: { Authorization: `Bearer ${token.value}` }
         })
-        
+
         if (!res.ok) throw new Error('Impossibile recuperare itinerario del viaggio')
-        
+
         const json = await res.json()
         const tripData = json.data?.attributes || json.data
-        
+
         if (tripData?.itinerary && Array.isArray(tripData.itinerary)) {
             form.value.itinerary = tripData.itinerary.map((d: any) => ({
                 title: d.title || '',
@@ -153,7 +406,7 @@ const importTripItinerary = async () => {
         } else {
             toast.info('Il viaggio selezionato non ha un itinerario.')
         }
-        
+
     } catch (err: any) {
         console.error('Import itinerary error:', err)
         formError.value = 'Errore importazione itinerario'
@@ -178,6 +431,16 @@ const saveOffer = async () => {
                 endDate: form.value.endDate,
                 maxParticipants: parseInt(form.value.maxParticipants),
                 occupiedSeats: parseInt(form.value.occupiedSeats) || 0,
+                allowInstallments: form.value.allowInstallments,
+                installmentConfigs: form.value.allowInstallments
+                    ? form.value.installmentConfigs.filter(c => c.name.trim() && c.percentage > 0).map(c => ({
+                        name: c.name,
+                        percentage: c.percentage,
+                        dueDateType: c.dueDateType,
+                        relativeMonths: c.dueDateType === 'relative' ? c.relativeMonths : null,
+                        dueDate: c.dueDateType === 'precise' ? c.dueDate : null,
+                    }))
+                    : [],
                 itinerary: form.value.itinerary.filter(d => d.title.trim())
             },
         }
@@ -258,6 +521,10 @@ const formatDate = (d: string) => {
     return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+const getDateLabel = (dateStr: string) => {
+    return dateStr ? formatDate(dateStr) : "Seleziona data"
+}
+
 onMounted(fetchData)
 </script>
 
@@ -282,7 +549,8 @@ onMounted(fetchData)
                 leave-from-class="opacity-100" leave-to-class="opacity-0">
                 <div v-if="showForm" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showForm = false"></div>
-                    <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+                    <div
+                        class="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
                         <div class="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
                             <h2 class="text-xl font-bold text-slate-900">
                                 {{ editingId ? 'Modifica Offerta' : 'Nuova Offerta' }}
@@ -292,100 +560,275 @@ onMounted(fetchData)
                                 <X class="w-5 h-5" />
                             </button>
                         </div>
-                        
-                        
+
+
                         <div class="p-6 flex-1 overflow-y-auto custom-scrollbar">
                             <div class="lg:grid lg:grid-cols-2 lg:gap-8 space-y-8">
                                 <!-- Left Column: General Info -->
                                 <div class="space-y-4">
-                                    <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 lg:hidden">Dettagli Generali</h3>
-                                    
+                                    <h3
+                                        class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-2 lg:hidden">
+                                        Dettagli Generali</h3>
+
                                     <div>
-                                        <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Viaggio *</label>
-                                        <select v-model="form.trip"
-                                            class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white">
-                                            <option value="">Seleziona viaggio...</option>
-                                            <option v-for="t in trips" :key="t.documentId || t.id"
-                                                :value="t.documentId || t.id">
-                                                {{ t.title }}
-                                            </option>
-                                        </select>
+                                        <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Viaggio
+                                            *</Label>
+                                        <Select v-model="form.trip">
+                                            <SelectTrigger
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white">
+                                                <SelectValue placeholder="Seleziona viaggio..." />
+                                            </SelectTrigger>
+                                            <SelectContent class="z-[100]">
+                                                <SelectItem v-for="t in trips" :key="t.documentId || t.id"
+                                                    :value="t.documentId || t.id">
+                                                    {{ t.title }}
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Prezzo (€)
-                                                *</label>
-                                            <input v-model="form.price" type="number" step="0.01"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            <Label
+                                                class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Prezzo
+                                                (€) *</Label>
+                                            <Input v-model="form.price" type="number" step="0.01"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                                 placeholder="0.00" />
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Acconto
-                                                (€)</label>
-                                            <input v-model="form.depositPrice" type="number" step="0.01"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            <Label
+                                                class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Acconto
+                                                (€)</Label>
+                                            <Input v-model="form.depositPrice" type="number" step="0.01"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                                 placeholder="0.00" />
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Inizio
-                                                *</label>
-                                            <input v-model="form.startDate" type="date"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                                            <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data
+                                                Inizio *</Label>
+                                            <Popover>
+                                                <PopoverTrigger as-child>
+                                                    <Button variant="outline"
+                                                        class="w-full h-11 px-4 justify-start text-left font-medium rounded-xl border-slate-200 hover:bg-slate-50"
+                                                        :class="!form.startDate && 'text-slate-400 font-normal'">
+                                                        <Calendar class="mr-2 h-4 w-4 opacity-50" />
+                                                        {{ getDateLabel(form.startDate) }}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent class="w-auto p-0 z-[100]" align="start">
+                                                    <CalendarComponent mode="single" locale="it-IT"
+                                                        :model-value="getCalendarDate(form.startDate)"
+                                                        @update:model-value="(v) => setFormDate(v, 'startDate')"
+                                                        initial-focus />
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data Fine
-                                                *</label>
-                                            <input v-model="form.endDate" type="date"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                                            <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Data
+                                                Fine *</Label>
+                                            <Popover>
+                                                <PopoverTrigger as-child>
+                                                    <Button variant="outline"
+                                                        class="w-full h-11 px-4 justify-start text-left font-medium rounded-xl border-slate-200 hover:bg-slate-50"
+                                                        :class="!form.endDate && 'text-slate-400 font-normal'">
+                                                        <Calendar class="mr-2 h-4 w-4 opacity-50" />
+                                                        {{ getDateLabel(form.endDate) }}
+                                                    </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent class="w-auto p-0 z-[100]" align="start">
+                                                    <CalendarComponent mode="single" locale="it-IT"
+                                                        :model-value="getCalendarDate(form.endDate)"
+                                                        @update:model-value="(v) => setFormDate(v, 'endDate')"
+                                                        initial-focus />
+                                                </PopoverContent>
+                                            </Popover>
                                         </div>
                                     </div>
                                     <div class="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max
-                                                Partecipanti
-                                                *</label>
-                                            <input v-model="form.maxParticipants" type="number"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Max
+                                                Partecipanti *</Label>
+                                            <Input v-model="form.maxParticipants" type="number"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                                 placeholder="20" />
                                         </div>
                                         <div>
-                                            <label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Posti
-                                                Occupati</label>
-                                            <input v-model="form.occupiedSeats" type="number"
-                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                                            <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Posti
+                                                Occupati</Label>
+                                            <Input v-model="form.occupiedSeats" type="number"
+                                                class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                                 placeholder="0" />
                                         </div>
                                     </div>
-                                    
-                                    <p v-if="formError" class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
+
+                                    <!-- Installment Configuration -->
+                                    <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                        <!-- Global Enable Installments -->
+                                        <div class="flex items-center gap-3 mb-4">
+                                            <Switch id="allow-installments" :checked="form.allowInstallments"
+                                                @update:checked="(v: boolean) => form.allowInstallments = v" />
+                                            <Label for="allow-installments"
+                                                class="text-xs font-bold text-slate-900 uppercase tracking-wider cursor-pointer">
+                                                Pagamento a Rate
+                                            </Label>
+                                        </div>
+
+                                        <div v-if="form.allowInstallments" class="space-y-3">
+                                            <div v-for="(cfg, i) in form.installmentConfigs" :key="i"
+                                                class="bg-white rounded-lg p-3 border border-slate-100 relative shadow-sm">
+
+                                                <!-- Header: Name + Remove -->
+                                                <div class="flex items-center gap-2 mb-3">
+                                                    <Input v-model="cfg.name" type="text"
+                                                        class="flex-1 h-8 px-2 text-xs font-bold placeholder:font-normal"
+                                                        :placeholder="`Rata ${i + 1}`" />
+                                                    <button @click="removeInstallment(i)" type="button"
+                                                        class="text-slate-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors">
+                                                        <Trash2 class="w-4 h-4" />
+                                                    </button>
+
+                                                </div>
+
+                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                    <!-- Left: Amount Input -->
+                                                    <div>
+                                                        <div class="flex items-center justify-between mb-1.5">
+                                                            <span
+                                                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Importo
+                                                                (€)</span>
+                                                            <span class="text-[10px] font-medium text-slate-400">{{
+                                                                cfg.percentage.toFixed(1) }}%</span>
+                                                        </div>
+                                                        <Input type="number" :model-value="cfg.amount" :min="0"
+                                                            :max="parseFloat(form.price) || 0" :step="1"
+                                                            @update:model-value="(v: string | number) => handleAmountUpdate(i, Number(v))"
+                                                            class="h-9 text-sm font-bold text-primary" />
+                                                    </div>
+
+                                                    <!-- Right: Date Control -->
+                                                    <div>
+                                                        <div class="flex items-center justify-between mb-1.5">
+                                                            <span
+                                                                class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scadenza</span>
+                                                            <span v-if="cfg.dueDateType === 'precise'"
+                                                                class="text-[10px] font-medium text-slate-500 truncate">{{
+                                                                    getPreviewDate(cfg) }}</span>
+                                                        </div>
+                                                        <div class="flex gap-2">
+                                                            <div class="relative flex-1">
+                                                                <Select
+                                                                    :model-value="cfg.dueDateType === 'relative' ? cfg.relativeMonths?.toString() : 'precise'"
+                                                                    @update:model-value="(val) => {
+                                                                        if (val && val !== 'precise') {
+                                                                            cfg.dueDateType = 'relative';
+                                                                            cfg.relativeMonths = parseInt(val);
+                                                                            cfg.dueDate = '';
+                                                                        }
+                                                                    }">
+                                                                    <SelectTrigger
+                                                                        class="w-full h-9 text-xs font-medium">
+                                                                        <SelectValue placeholder="Seleziona..." />
+                                                                    </SelectTrigger>
+                                                                    <SelectContent>
+                                                                        <SelectItem v-for="m in getAvailableMonths(i)"
+                                                                            :key="m" :value="m.toString()">
+                                                                            {{ m }} {{ m === 1 ? 'mese' : 'mesi' }}
+                                                                            prima
+                                                                        </SelectItem>
+                                                                        <SelectItem value="precise" class="hidden">Data
+                                                                            personalizzata</SelectItem>
+                                                                    </SelectContent>
+                                                                </Select>
+
+                                                                <!-- Arrow icon overlay removed as SelectTrigger has one -->
+                                                            </div>
+
+                                                            <Popover>
+                                                                <PopoverTrigger as-child>
+                                                                    <button type="button"
+                                                                        class="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all outline-none focus:ring-2 focus:ring-primary/20"
+                                                                        :class="{ 'border-primary bg-primary/10 text-primary ring-2 ring-primary/20': cfg.dueDateType === 'precise' }"
+                                                                        title="Seleziona data precisa">
+                                                                        <Calendar class="w-4 h-4" />
+                                                                    </button>
+                                                                </PopoverTrigger>
+                                                                <PopoverContent class="w-auto p-0" align="end">
+                                                                    <CalendarComponent mode="single" locale="it-IT"
+                                                                        :model-value="getCalendarDate(cfg.dueDate)"
+                                                                        @update:model-value="(v) => setCalendarDate(v as DateValue | undefined, cfg)"
+                                                                        initial-focus />
+                                                                </PopoverContent>
+                                                            </Popover>
+                                                        </div>
+                                                        <p v-if="dateErrors[i]"
+                                                            class="text-[10px] text-red-500 mt-1 text-right font-bold">
+                                                            {{ dateErrors[i] }}</p>
+                                                        <p v-else-if="cfg.dueDateType === 'relative'"
+                                                            class="text-[10px] text-slate-400 mt-1 text-right">Prevista:
+                                                            {{ getPreviewDate(cfg) }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Total amount bar -->
+                                            <div class="flex items-center gap-2 px-1">
+                                                <div class="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                                                    <div class="h-full rounded-full transition-all duration-300"
+                                                        :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - (parseFloat(form.price) || 0)) < 0.01 ? 'bg-green-500' : 'bg-orange-400'"
+                                                        :style="{ width: Math.min((form.installmentConfigs.reduce((s, c) => s + c.amount, 0) / (parseFloat(form.price) || 1)) * 100, 100) + '%' }">
+                                                    </div>
+                                                </div>
+                                                <span class="text-[10px] font-bold"
+                                                    :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - (parseFloat(form.price) || 0)) < 0.01 ? 'text-green-600' : 'text-orange-500'">
+                                                    €{{form.installmentConfigs.reduce((s, c) => s + c.amount,
+                                                        0).toFixed(2)}}
+                                                    / €{{ parseFloat(form.price) || 0 }}
+                                                </span>
+                                            </div>
+
+                                            <button @click="addInstallment" type="button"
+                                                class="w-full text-xs font-bold text-primary hover:text-primary/80 transition-colors px-3 py-2 bg-primary/10 rounded-lg flex items-center justify-center gap-1">
+                                                <Plus class="w-3 h-3" /> Aggiungi Rata
+                                            </button>
+                                        </div>
+                                        <p v-else class="text-xs text-slate-400">Attiva per definire un piano di
+                                            pagamento rateale per questa offerta.</p>
+                                    </div>
+
+                                    <p v-if="formError"
+                                        class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
                                         {{ formError }}
                                     </p>
                                 </div>
-                                
+
                                 <!-- Right Column: Itinerary Section -->
                                 <div class="relative bg-slate-50/50 rounded-2xl lg:bg-transparent">
                                     <div class="p-4 lg:p-0 lg:absolute lg:inset-0 flex flex-col">
                                         <div class="flex items-center justify-between mb-4 shrink-0">
-                                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Itinerario Offerta</h3>
+                                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                                Itinerario Offerta</h3>
                                             <div class="flex items-center gap-2">
                                                 <button @click="importTripItinerary" type="button"
                                                     class="text-xs font-bold text-primary hover:text-primary/80 transition-colors px-3 py-1.5 bg-primary/10 rounded-lg">
                                                     Importa da Viaggio
                                                 </button>
-                                                <button @click="addDay" type="button" 
+                                                <button @click="addDay" type="button"
                                                     class="text-xs font-bold text-slate-500 hover:text-slate-700 transition-colors px-3 py-1.5 bg-slate-100 rounded-lg flex items-center gap-1">
                                                     <Plus class="w-3 h-3" /> Aggiungi
                                                 </button>
                                             </div>
                                         </div>
-                                        
-                                        <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[300px] lg:min-h-0">
+
+                                        <div
+                                            class="flex-1 overflow-y-auto custom-scrollbar pr-2 min-h-[300px] lg:min-h-0">
                                             <div v-if="form.itinerary.length > 0" class="space-y-3">
-                                                <div v-for="(day, i) in form.itinerary" :key="i" class="bg-slate-50 rounded-xl p-3 relative group border border-slate-100 hover:border-primary/20 transition-colors">
+                                                <div v-for="(day, i) in form.itinerary" :key="i"
+                                                    class="bg-slate-50 rounded-xl p-3 relative group border border-slate-100 hover:border-primary/20 transition-colors">
                                                     <div class="flex items-center justify-between mb-2">
-                                                        <span class="text-xs font-bold text-slate-400 uppercase">Giorno {{ i + 1 }}</span>
+                                                        <span class="text-xs font-bold text-slate-400 uppercase">Giorno
+                                                            {{ i + 1 }}</span>
                                                         <button @click="removeDay(i)" type="button"
                                                             class="text-red-400 hover:text-red-500 p-1 rounded-md hover:bg-red-50 transition-colors">
                                                             <Trash2 class="w-3.5 h-3.5" />
@@ -401,15 +844,18 @@ onMounted(fetchData)
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div v-else class="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-xl">
-                                                <div class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
+                                            <div v-else
+                                                class="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-200 rounded-xl">
+                                                <div
+                                                    class="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mb-3">
                                                     <Calendar class="w-6 h-6 text-slate-300" />
                                                 </div>
                                                 <p class="text-sm font-bold text-slate-600 mb-1">Nessun itinerario</p>
                                                 <p class="text-xs text-slate-400 max-w-[200px]">
                                                     L'offerta utilizzerà l'itinerario predefinito del viaggio.
                                                 </p>
-                                                <button @click="importTripItinerary" type="button" class="mt-4 text-xs font-bold text-primary hover:underline">
+                                                <button @click="importTripItinerary" type="button"
+                                                    class="mt-4 text-xs font-bold text-primary hover:underline">
                                                     Importa ora
                                                 </button>
                                             </div>
