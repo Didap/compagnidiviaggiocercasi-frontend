@@ -345,13 +345,21 @@ const setCalendarDate = (val: DateValue | undefined, cfg: InstallmentConfig) => 
     }
 }
 
-const setFormDate = (val: DateValue | undefined, field: 'startDate' | 'endDate') => {
-    if (val) {
-        form.value[field] = val.toString()
-    } else {
-        form.value[field] = ''
+// Computed v-model refs for start/end date pickers
+// Using computed refs prevents the calendar from resetting the displayed month on re-render
+const startDateValue = computed({
+    get: () => getCalendarDate(form.value.startDate),
+    set: (val: DateValue | undefined) => {
+        form.value.startDate = val ? val.toString() : ''
     }
-}
+})
+
+const endDateValue = computed({
+    get: () => getCalendarDate(form.value.endDate),
+    set: (val: DateValue | undefined) => {
+        form.value.endDate = val ? val.toString() : ''
+    }
+})
 
 
 
@@ -368,6 +376,39 @@ const getPreviewDate = (cfg: InstallmentConfig) => {
 }
 
 // Itinerary Helpers
+const offerDuration = computed(() => {
+    if (!form.value.startDate || !form.value.endDate) return 0
+    const start = new Date(form.value.startDate)
+    const end = new Date(form.value.endDate)
+    start.setHours(0, 0, 0, 0)
+    end.setHours(0, 0, 0, 0)
+    const diffMs = end.getTime() - start.getTime()
+    const days = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1 // +1 perché il giorno di partenza conta
+    return days > 0 ? days : 0
+})
+
+const syncItineraryWithDuration = () => {
+    const target = offerDuration.value
+    if (target <= 0) return
+    const current = form.value.itinerary.length
+    if (current < target) {
+        // Aggiunge i giorni mancanti
+        for (let i = current; i < target; i++) {
+            form.value.itinerary.push({ title: '', description: '' })
+        }
+    } else if (current > target) {
+        // Rimuove i giorni in eccesso dalla fine
+        form.value.itinerary.splice(target)
+    }
+}
+
+// Auto-sync itinerary when dates change
+watch([() => form.value.startDate, () => form.value.endDate], () => {
+    if (offerDuration.value > 0) {
+        syncItineraryWithDuration()
+    }
+})
+
 const addDay = () => {
     form.value.itinerary.push({ title: '', description: '' })
 }
@@ -619,8 +660,7 @@ onMounted(fetchData)
                                                 </PopoverTrigger>
                                                 <PopoverContent class="w-auto p-0 z-[100]" align="start">
                                                     <CalendarComponent mode="single" locale="it-IT"
-                                                        :model-value="getCalendarDate(form.startDate)"
-                                                        @update:model-value="(v) => setFormDate(v, 'startDate')"
+                                                        v-model="startDateValue"
                                                         initial-focus />
                                                 </PopoverContent>
                                             </Popover>
@@ -639,8 +679,7 @@ onMounted(fetchData)
                                                 </PopoverTrigger>
                                                 <PopoverContent class="w-auto p-0 z-[100]" align="start">
                                                     <CalendarComponent mode="single" locale="it-IT"
-                                                        :model-value="getCalendarDate(form.endDate)"
-                                                        @update:model-value="(v) => setFormDate(v, 'endDate')"
+                                                        v-model="endDateValue"
                                                         initial-focus />
                                                 </PopoverContent>
                                             </Popover>
@@ -807,8 +846,16 @@ onMounted(fetchData)
                                 <div class="relative bg-slate-50/50 rounded-2xl lg:bg-transparent">
                                     <div class="p-4 lg:p-0 lg:absolute lg:inset-0 flex flex-col">
                                         <div class="flex items-center justify-between mb-4 shrink-0">
-                                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
-                                                Itinerario Offerta</h3>
+                                            <div class="flex items-center gap-2">
+                                                <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                                                    Itinerario Offerta</h3>
+                                                <span v-if="offerDuration > 0" class="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                                                    :class="form.itinerary.length === offerDuration
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-orange-100 text-orange-700'">
+                                                    {{ form.itinerary.length }}/{{ offerDuration }} giorni
+                                                </span>
+                                            </div>
                                             <div class="flex items-center gap-2">
                                                 <button @click="importTripItinerary" type="button"
                                                     class="text-xs font-bold text-primary hover:text-primary/80 transition-colors px-3 py-1.5 bg-primary/10 rounded-lg">

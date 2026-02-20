@@ -357,8 +357,8 @@ onMounted(fetchTrips)
                                 <div>
                                     <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">
                                         Descrizione</h3>
-                                    <p class="text-slate-600 leading-relaxed whitespace-pre-line text-sm">
-                                        {{ getTripDescription(selectedTrip) }}
+                                    <p class="text-slate-600 leading-relaxed text-sm prose prose-sm max-w-none"
+                                        v-html="getTripDescription(selectedTrip)">
                                     </p>
                                 </div>
                             </div>
@@ -385,7 +385,8 @@ onMounted(fetchTrips)
                                                 {{ Number(i) + 1 }}</span>
                                             {{ day.title }}
                                         </h4>
-                                        <p class="text-slate-500 text-sm leading-relaxed">{{ day.description }}</p>
+                                        <p class="text-slate-500 text-sm leading-relaxed prose prose-sm max-w-none"
+                                            v-html="day.description"></p>
                                     </div>
                                 </div>
                             </div>

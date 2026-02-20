@@ -49,6 +49,7 @@ const participants = ref<Traveler[]>([
 ])
 
 const notes = ref('')
+const operatorCode = ref('')
 const requestInvoice = ref(false)
 const paymentOption = ref<'full' | 'deposit' | 'installments'>('deposit')
 
@@ -107,7 +108,7 @@ const formatDateRange = (o: any) => {
 const getDuration = (o: any) => {
     if (!o?.startDate || !o?.endDate) return ''
     const diff = Math.ceil((new Date(o.endDate).getTime() - new Date(o.startDate).getTime()) / (1000 * 60 * 60 * 24))
-    return `${diff} ${diff === 1 ? 'giorno' : 'giorni'} / ${diff - 1} ${diff - 1 === 1 ? 'notte' : 'notti'}`
+    return `${diff + 1} ${diff + 1 === 1 ? 'giorno' : 'giorni'} / ${diff} ${diff === 1 ? 'notte' : 'notti'}`
 }
 
 const availableSeats = computed(() => {
@@ -224,6 +225,7 @@ const submitBooking = async () => {
                 totalPrice: totalAmount.value,
                 depositPrice: totalDeposit.value,
                 notes: notes.value,
+                operatorCode: operatorCode.value || undefined,
                 requestInvoice: requestInvoice.value,
                 paymentOption: paymentOption.value,
                 participants: participants.value,
@@ -432,6 +434,16 @@ onMounted(fetchOffer)
                                 <textarea v-model="notes" rows="4"
                                     placeholder="Allergie, esigenze alimentari, o messaggi per il coordinatore..."
                                     class="w-full bg-slate-50 border border-slate-100 rounded-2xl p-6 focus:ring-2 focus:ring-primary/20 transition-all font-medium resize-none"></textarea>
+
+                                <!-- Operator Code -->
+                                <div class="mt-6 pt-6 border-t border-slate-100">
+                                    <label
+                                        class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Codice
+                                        Operatore</label>
+                                    <input v-model="operatorCode" type="text"
+                                        placeholder="Inserisci il codice operatore (opzionale)"
+                                        class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium" />
+                                </div>
                             </div>
 
 
