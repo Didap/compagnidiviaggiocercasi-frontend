@@ -5,7 +5,7 @@ import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import {
-    Ticket, Search, User, CheckCircle, XCircle, Clock, Loader2, Eye, MapPin, Calendar, CreditCard, Mail, X, FileDown, Users, Trash2
+    Ticket, Search, User, CheckCircle, XCircle, Clock, Loader2, Eye, MapPin, Calendar, CreditCard, Mail, X, FileDown, Users, Trash2, Receipt, StickyNote, Hash, CircleDot, BadgeCheck, AlertCircle
 } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import { useBulkActions } from '@/composables/useBulkActions'
@@ -25,7 +25,7 @@ const selectedBooking = ref<any>(null)
 const fetchData = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${apiUrl}/api/bookings?populate[offer][populate]=trip&populate[user][fields][0]=username&populate[user][fields][1]=email&populate[user][fields][2]=firstName&populate[user][fields][3]=lastName&populate[participants]=*&sort=createdAt:desc`, {
+        const res = await fetch(`${apiUrl}/api/bookings?populate[offer][populate]=trip&populate[user][fields][0]=username&populate[user][fields][1]=email&populate[user][fields][2]=firstName&populate[user][fields][3]=lastName&populate[participants]=*&populate[paymentSteps]=*&sort=createdAt:desc`, {
             headers: { Authorization: `Bearer ${token.value}` },
         })
         const data = await res.json()
@@ -107,13 +107,39 @@ const formatSimpleDate = (d: string) => {
     return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-
 const statusBadge = (status: string) => {
     switch (status) {
         case 'confirmed': return { label: 'Confermata', class: 'bg-green-100 text-green-700' }
         case 'pending': return { label: 'In Attesa', class: 'bg-amber-100 text-amber-700' }
         case 'cancelled': return { label: 'Cancellata', class: 'bg-red-100 text-red-700' }
         default: return { label: status, class: 'bg-slate-100 text-slate-700' }
+    }
+}
+
+const paymentStepStatusBadge = (status: string) => {
+    switch (status) {
+        case 'paid': return { label: 'Pagato', class: 'bg-green-100 text-green-700' }
+        case 'pending': return { label: 'In Attesa', class: 'bg-amber-100 text-amber-700' }
+        case 'overdue': return { label: 'Scaduto', class: 'bg-red-100 text-red-700' }
+        default: return { label: status, class: 'bg-slate-100 text-slate-700' }
+    }
+}
+
+const paymentOptionLabel = (opt: string) => {
+    switch (opt) {
+        case 'full': return 'Pagamento Completo'
+        case 'deposit': return 'Solo Acconto'
+        case 'installments': return 'Rate'
+        default: return opt || '—'
+    }
+}
+
+const genderLabel = (g: string) => {
+    switch (g) {
+        case 'male': return 'Maschio'
+        case 'female': return 'Femmina'
+        case 'other': return 'Altro'
+        default: return g || '—'
     }
 }
 
@@ -293,9 +319,10 @@ onMounted(fetchData)
                     </thead>
                     <tbody>
                         <tr v-for="booking in filteredBookings" :key="booking.documentId || booking.id"
-                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                            @click="openDetails(booking)"
+                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
                             :class="{ 'bg-primary/5': selectedIds.includes(booking.documentId || booking.id) }">
-                            <td class="py-4 pl-6 pr-2">
+                            <td class="py-4 pl-6 pr-2" @click.stop>
                                 <input type="checkbox" :checked="selectedIds.includes(booking.documentId || booking.id)"
                                     @change="toggleSelect(booking.documentId || booking.id)"
                                     class="rounded border-slate-300 text-primary focus:ring-primary/20">
@@ -323,7 +350,7 @@ onMounted(fetchData)
                             <td class="py-4 px-4 text-right">
                                 <span class="font-bold text-slate-800">€{{ getAmount(booking) }}</span>
                             </td>
-                            <td class="py-4 px-6">
+                            <td class="py-4 px-6" @click.stop>
                                 <div class="flex items-center justify-end gap-2">
                                     <button @click="openDetails(booking)"
                                         class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
@@ -474,6 +501,91 @@ onMounted(fetchData)
                                 </div>
                             </div>
 
+                            <!-- Payment Info -->
+                            <div>
+                                <h3
+                                    class="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+                                    <Receipt class="w-4 h-4 text-primary" /> Info Pagamento
+                                </h3>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Prezzo Totale</p>
+                                        <p class="text-lg font-black text-slate-800">€{{ selectedBooking.totalPrice ?? '—' }}</p>
+                                    </div>
+                                    <div class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Acconto</p>
+                                        <p class="text-lg font-black text-slate-800">€{{ selectedBooking.depositPrice ?? '—' }}</p>
+                                    </div>
+                                    <div class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Opzione Pagamento</p>
+                                        <p class="font-bold text-slate-800">{{ paymentOptionLabel(selectedBooking.paymentOption) }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Payment Steps -->
+                            <div v-if="selectedBooking.paymentSteps && selectedBooking.paymentSteps.length > 0">
+                                <h3
+                                    class="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+                                    <CircleDot class="w-4 h-4 text-primary" /> Step di Pagamento ({{
+                                        selectedBooking.paymentSteps.length
+                                    }})
+                                </h3>
+                                <div class="space-y-3">
+                                    <div v-for="(step, i) in selectedBooking.paymentSteps" :key="i"
+                                        class="p-4 bg-white border border-slate-100 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                        <div class="flex items-center gap-3">
+                                            <div
+                                                class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                                                :class="step.status === 'paid' ? 'bg-green-100 text-green-600' : step.status === 'overdue' ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'">
+                                                {{ Number(i) + 1 }}
+                                            </div>
+                                            <div>
+                                                <p class="font-bold text-slate-800">{{ step.name }}</p>
+                                                <p class="text-xs text-slate-400">
+                                                    Scadenza: {{ step.dueDate ? formatSimpleDate(step.dueDate) : '—' }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-4 sm:ml-auto">
+                                            <span class="text-lg font-black text-slate-800">€{{ step.amount }}</span>
+                                            <Badge :class="[paymentStepStatusBadge(step.status).class, 'border-none font-bold']">
+                                                {{ paymentStepStatusBadge(step.status).label }}
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Info -->
+                            <div v-if="selectedBooking.notes || selectedBooking.requestInvoice || selectedBooking.operatorCode">
+                                <h3
+                                    class="flex items-center gap-2 text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">
+                                    <StickyNote class="w-4 h-4 text-primary" /> Info Aggiuntive
+                                </h3>
+                                <div class="space-y-3">
+                                    <div v-if="selectedBooking.operatorCode" class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Codice Operatore</p>
+                                        <p class="font-bold text-slate-800 flex items-center gap-2">
+                                            <Hash class="w-3.5 h-3.5 text-slate-400" />
+                                            {{ selectedBooking.operatorCode }}
+                                        </p>
+                                    </div>
+                                    <div class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Fattura Richiesta</p>
+                                        <p class="font-bold flex items-center gap-2" :class="selectedBooking.requestInvoice ? 'text-green-600' : 'text-slate-500'">
+                                            <BadgeCheck v-if="selectedBooking.requestInvoice" class="w-4 h-4" />
+                                            <AlertCircle v-else class="w-4 h-4" />
+                                            {{ selectedBooking.requestInvoice ? 'Sì' : 'No' }}
+                                        </p>
+                                    </div>
+                                    <div v-if="selectedBooking.notes" class="p-4 rounded-xl border border-slate-100 bg-white shadow-sm">
+                                        <p class="text-xs text-slate-400 font-bold uppercase mb-1">Note</p>
+                                        <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ selectedBooking.notes }}</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Participants List -->
                             <div v-if="selectedBooking.participants && selectedBooking.participants.length > 0">
                                 <h3
@@ -493,6 +605,12 @@ onMounted(fetchData)
                                             <p class="font-bold text-slate-800">{{ p.firstName }} {{ p.lastName }}</p>
                                         </div>
                                         <div class="text-xs text-slate-500 space-y-1 ml-11">
+                                            <p v-if="p.birthDate">
+                                                Data di Nascita: {{ formatSimpleDate(p.birthDate) }}
+                                            </p>
+                                            <p v-if="p.gender">
+                                                Genere: {{ genderLabel(p.gender) }}
+                                            </p>
                                             <p v-if="p.email">Email: {{ p.email }}</p>
                                             <p v-if="p.phone">Tel: {{ p.phone }}</p>
                                             <p v-if="p.fiscalCode">CF: {{ p.fiscalCode }}</p>

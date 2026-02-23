@@ -167,7 +167,7 @@ onMounted(fetchSubscribers)
                     </thead>
                     <tbody>
                         <tr v-for="sub in filteredSubscribers" :key="sub.id"
-                            class="border-b border-slate-50 hover:bg-slate-50/30 transition-colors">
+                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                             <td class="py-4 px-6">
                                 <div class="flex items-center gap-3">
                                     <div

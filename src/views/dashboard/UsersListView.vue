@@ -280,9 +280,10 @@ onMounted(fetchData)
                     </thead>
                     <tbody>
                         <tr v-for="u in filteredUsers" :key="u.id"
-                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors"
+                            @click="openUserDetails(u)"
+                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer"
                             :class="{ 'bg-primary/5': selectedIds.includes(u.id) }">
-                            <td class="py-4 pl-6 pr-2">
+                            <td class="py-4 pl-6 pr-2" @click.stop>
                                 <input type="checkbox" :checked="selectedIds.includes(u.id)"
                                     @change="toggleSelect(u.id)"
                                     class="rounded border-slate-300 text-primary focus:ring-primary/20 cursor-pointer">
@@ -311,7 +312,7 @@ onMounted(fetchData)
                                     <span class="truncate">{{ u.email }}</span>
                                 </div>
                             </td>
-                            <td class="py-4 px-4 text-center">
+                            <td class="py-4 px-4 text-center" @click.stop>
                                 <div class="inline-flex items-center gap-2">
                                     <Loader2 v-if="updatingRole === u.id" class="w-4 h-4 animate-spin text-primary" />
                                     <select v-else :value="getRoleId(u)"
@@ -327,7 +328,7 @@ onMounted(fetchData)
                             <td class="py-4 px-4 hidden lg:table-cell">
                                 <span class="text-sm text-slate-500">{{ formatDate(u.createdAt) }}</span>
                             </td>
-                            <td class="py-4 px-6">
+                            <td class="py-4 px-6" @click.stop>
                                 <div class="flex items-center justify-end">
                                     <button @click="openUserDetails(u)"
                                         class="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors">
@@ -390,6 +391,37 @@ onMounted(fetchData)
                                     </span>
                                     <span>•</span>
                                     <span>Iscritto il {{ formatDate(selectedUser.createdAt) }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- User Info Grid -->
+                        <div class="bg-slate-50 rounded-2xl p-5">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Informazioni Account</h3>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Username</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ selectedUser.username }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Ruolo</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ selectedUser.role?.name || '—' }}</p>
+                                </div>
+                                <div v-if="selectedUser.gender">
+                                    <p class="text-xs text-slate-400 mb-0.5">Genere</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ selectedUser.gender === 'male' ? 'Maschio' : selectedUser.gender === 'female' ? 'Femmina' : 'Altro' }}</p>
+                                </div>
+                                <div v-if="selectedUser.birthDate">
+                                    <p class="text-xs text-slate-400 mb-0.5">Data di Nascita</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ formatDate(selectedUser.birthDate) }}</p>
+                                </div>
+                                <div v-if="selectedUser.phone">
+                                    <p class="text-xs text-slate-400 mb-0.5">Telefono</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ selectedUser.phone }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Confermato</p>
+                                    <p class="text-sm font-bold" :class="selectedUser.confirmed ? 'text-green-600' : 'text-amber-600'">{{ selectedUser.confirmed ? 'Sì' : 'No' }}</p>
                                 </div>
                             </div>
                         </div>

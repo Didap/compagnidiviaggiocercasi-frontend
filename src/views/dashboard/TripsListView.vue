@@ -6,7 +6,7 @@ import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
-import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search, Calendar, Tag } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
@@ -114,11 +114,19 @@ const openDetails = async (trip: any) => {
     selectedTrip.value = trip // Show partial data immediately
     try {
         const docId = trip.documentId || trip.id
-        const res = await fetch(`${apiUrl}/api/trips/${docId}?populate[image][fields]=url&populate[gallery][fields]=url&populate[itinerary]=*`, {
-            headers: { Authorization: `Bearer ${token.value}` }
-        })
-        const data = await res.json()
-        selectedTrip.value = data.data || data
+        const [tripRes, offersRes] = await Promise.all([
+            fetch(`${apiUrl}/api/trips/${docId}?populate[image][fields]=url&populate[gallery][fields]=url&populate[itinerary]=*`, {
+                headers: { Authorization: `Bearer ${token.value}` }
+            }),
+            fetch(`${apiUrl}/api/offers?filters[trip][documentId]=${docId}&populate[trip][fields]=title&sort=startDate:asc`, {
+                headers: { Authorization: `Bearer ${token.value}` }
+            })
+        ])
+        const tripData = await tripRes.json()
+        const offersData = await offersRes.json()
+        const tripObj = tripData.data || tripData
+        tripObj._offers = offersData.data || []
+        selectedTrip.value = tripObj
     } catch (err) {
         console.error('Error fetching details:', err)
     } finally {
@@ -152,6 +160,11 @@ const filteredTrips = computed(() => {
 
 const getTripDescription = (trip: any) => {
     return trip.description || trip.shortDescription || 'Nessuna descrizione disponibile.'
+}
+
+const formatDate = (d: string) => {
+    if (!d) return ''
+    return new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
 onMounted(fetchTrips)
@@ -360,6 +373,44 @@ onMounted(fetchTrips)
                                     <p class="text-slate-600 leading-relaxed text-sm prose prose-sm max-w-none"
                                         v-html="getTripDescription(selectedTrip)">
                                     </p>
+                                </div>
+                            </div>
+
+                            <!-- Short Description -->
+                            <div v-if="selectedTrip.shortDescription" class="bg-slate-50 rounded-2xl p-5">
+                                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descrizione Breve</h3>
+                                <p class="text-sm text-slate-600 leading-relaxed">{{ selectedTrip.shortDescription }}</p>
+                            </div>
+
+                            <!-- Offers -->
+                            <div v-if="selectedTrip._offers && selectedTrip._offers.length > 0">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="h-px flex-1 bg-slate-100"></div>
+                                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider">Offerte Collegate</h3>
+                                    <div class="h-px flex-1 bg-slate-100"></div>
+                                </div>
+                                <div class="space-y-3">
+                                    <div v-for="offer in selectedTrip._offers" :key="offer.id"
+                                        class="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <Tag class="w-4 h-4 text-primary" />
+                                            </div>
+                                            <div>
+                                                <div class="flex items-center gap-2 text-sm font-bold text-slate-800">
+                                                    <Calendar class="w-3.5 h-3.5 text-slate-400" />
+                                                    {{ formatDate(offer.startDate) }} – {{ formatDate(offer.endDate) }}
+                                                </div>
+                                                <p class="text-xs text-slate-400 mt-0.5">
+                                                    {{ offer.occupiedSeats || 0 }} / {{ offer.maxParticipants || '—' }} posti
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="text-lg font-black text-slate-900">€{{ offer.price }}</p>
+                                            <p v-if="offer.depositPrice" class="text-xs text-slate-400">Acconto: €{{ offer.depositPrice }}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 

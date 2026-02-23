@@ -965,7 +965,8 @@ onMounted(fetchData)
                     </thead>
                     <tbody>
                         <tr v-for="offer in offers" :key="offer.documentId || offer.id"
-                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+                            @click="openDetails(offer)"
+                            class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer">
                             <td class="py-4 px-6">
                                 <p class="font-bold text-slate-800">{{ getTripTitle(offer) }}</p>
                             </td>
@@ -984,7 +985,7 @@ onMounted(fetchData)
                                     {{ getParticipantsCount(offer) }} / {{ offer.maxParticipants || '—' }}
                                 </Badge>
                             </td>
-                            <td class="py-4 px-6">
+                            <td class="py-4 px-6" @click.stop>
                                 <div class="flex items-center justify-end gap-2">
                                     <button @click="openDetails(offer)"
                                         class="p-2 text-slate-400 hover:text-secondary hover:bg-secondary/10 rounded-xl transition-colors">
@@ -1102,6 +1103,52 @@ onMounted(fetchData)
                                             posti` : '1 posto' }}
                                         </p>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Installment Plan -->
+                        <div v-if="selectedOffer.allowInstallments && selectedOffer.installmentConfigs && selectedOffer.installmentConfigs.length > 0">
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Piano Rateale</h3>
+                            <div class="space-y-3">
+                                <div v-for="(cfg, i) in selectedOffer.installmentConfigs" :key="i"
+                                    class="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                            {{ Number(i) + 1 }}
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800 text-sm">{{ cfg.name || `Rata ${Number(i) + 1}` }}</p>
+                                            <p class="text-xs text-slate-400">
+                                                <template v-if="cfg.dueDateType === 'relative' && cfg.relativeMonths">
+                                                    {{ cfg.relativeMonths }} {{ cfg.relativeMonths === 1 ? 'mese' : 'mesi' }} prima della partenza
+                                                </template>
+                                                <template v-else-if="cfg.dueDate">
+                                                    Scadenza: {{ formatDate(cfg.dueDate) }}
+                                                </template>
+                                                <template v-else>Data da definire</template>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <p class="text-sm font-black text-slate-900" v-if="cfg.amount">€{{ cfg.amount }}</p>
+                                        <p class="text-[10px] text-slate-400 font-bold" v-if="cfg.percentage">{{ cfg.percentage.toFixed?.(1) || cfg.percentage }}%</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Itinerary -->
+                        <div v-if="selectedOffer.itinerary && selectedOffer.itinerary.length > 0">
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Itinerario Personalizzato</h3>
+                            <div class="space-y-0 relative border-l-2 border-slate-100 ml-3 pl-6 pb-2">
+                                <div v-for="(day, i) in selectedOffer.itinerary" :key="i" class="mb-6 relative">
+                                    <div class="absolute -left-[27px] top-0 w-3 h-3 rounded-full bg-white border-[3px] border-primary"></div>
+                                    <h4 class="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
+                                        <span class="text-[10px] font-black text-white bg-primary px-1.5 py-0.5 rounded">Giorno {{ Number(i) + 1 }}</span>
+                                        {{ day.title }}
+                                    </h4>
+                                    <p class="text-slate-500 text-xs leading-relaxed" v-html="day.description"></p>
                                 </div>
                             </div>
                         </div>

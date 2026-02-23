@@ -76,7 +76,7 @@ const formatDate = (dateString: string) => {
                                 Nessun articolo trovato.
                             </td>
                         </tr>
-                        <tr v-for="post in posts" :key="post.id" class="hover:bg-slate-50/50 transition-colors">
+                        <tr v-for="post in posts" :key="post.id" @click="router.push(`/dashboard/posts/${post.documentId}`)" class="hover:bg-slate-50/50 transition-colors cursor-pointer">
                             <td class="px-6 py-4 font-medium text-gray-900">
                                 {{ post.title }}
                             </td>
@@ -92,7 +92,7 @@ const formatDate = (dateString: string) => {
                             <td class="px-6 py-4 text-gray-600">
                                 {{ formatDate(post.publishedAt) }}
                             </td>
-                            <td class="px-6 py-4 text-right">
+                            <td class="px-6 py-4 text-right" @click.stop>
                                 <div class="flex items-center justify-end gap-2">
                                     <Button variant="ghost" size="icon" @click="router.push(`/blog/${post.slug}`)" title="Vedi">
                                         <Eye class="w-4 h-4 text-gray-500" />

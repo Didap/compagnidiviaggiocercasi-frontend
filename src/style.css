@@ -82,22 +82,35 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Global thin scrollbar */
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8; /* slate-400 */
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Utility aliases (for backward compatibility) */
 @layer utilities {
-  .scrollbar-tiny::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-  }
-
-  .scrollbar-tiny::-webkit-scrollbar-track {
-    @apply bg-transparent;
-  }
-
-  .scrollbar-tiny::-webkit-scrollbar-thumb {
-    @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
-  }
-
-  .scrollbar-tiny {
+  .scrollbar-tiny,
+  .custom-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.slate.200') transparent;
+    scrollbar-color: #cbd5e1 transparent;
   }
 }
