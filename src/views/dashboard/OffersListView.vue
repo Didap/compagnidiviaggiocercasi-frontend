@@ -70,11 +70,12 @@ const form = ref({
     allowInstallments: false,
     installmentConfigs: [] as InstallmentConfig[],
     itinerary: [] as { title: string; description: string }[],
-    supplements: [] as Supplement[]
+    supplements: [] as Supplement[],
+    daysBeforeClose: 30
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[], supplements: [] as Supplement[] }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[], supplements: [] as Supplement[], daysBeforeClose: 30 }
     editingId.value = null
     formError.value = null
 }
@@ -110,7 +111,8 @@ const openEdit = (offer: any) => {
             })
             : [],
         itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : [],
-        supplements: Array.isArray(offer.supplement) ? offer.supplement.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : []
+        supplements: Array.isArray(offer.supplement) ? offer.supplement.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : [],
+        daysBeforeClose: typeof offer.daysBeforeClose === 'number' ? offer.daysBeforeClose : 30
     }
     formError.value = null
     showForm.value = true
@@ -490,7 +492,8 @@ const saveOffer = async () => {
                     }))
                     : [],
                 itinerary: form.value.itinerary.filter(d => d.title.trim()),
-                supplement: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 }))
+                supplement: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 })),
+                daysBeforeClose: Number(form.value.daysBeforeClose) || 30
             },
         }
 
@@ -708,6 +711,15 @@ onMounted(fetchData)
                                                 class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                                 placeholder="0" />
                                         </div>
+                                    </div>
+
+                                    <!-- Days Before Close -->
+                                    <div class="mt-4">
+                                        <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Chiusura prenotazioni (giorni prima della partenza)</Label>
+                                        <Input v-model="form.daysBeforeClose" type="number"
+                                            class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
+                                            placeholder="30" />
+                                        <p class="text-xs text-slate-400 mt-1">Es. 7 = le prenotazioni chiudono una settimana prima della partenza</p>
                                     </div>
 
                                     <!-- Installment Configuration -->
