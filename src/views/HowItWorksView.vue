@@ -129,7 +129,7 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
                     <div class="relative">
                         <div
                             class="bg-bg-primary rounded-[2.5rem] p-8 aspect-video flex items-center justify-center overflow-hidden">
-                            <img src="https://images.unsplash.com/photo-1528605248644-14dd04cb220d?auto=format&fit=crop&q=80&w=800"
+                            <img src="https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&q=80&w=800"
                                 class="rounded-2xl w-full h-full object-cover shadow-2xl" />
                         </div>
                     </div>
