@@ -139,7 +139,7 @@ const fetchData = async () => {
     loading.value = true
     try {
         const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&populate[supplement]=*&sort=createdAt:desc`, {
+            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&sort=createdAt:desc`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             }),
             fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {

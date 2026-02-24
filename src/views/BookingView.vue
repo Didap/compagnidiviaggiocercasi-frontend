@@ -57,7 +57,7 @@ const selectedSupplements = ref<Record<number, boolean>>({})
 const fetchOffer = async () => {
     try {
         const offerId = route.params.offerId
-        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*&populate[supplement]=*`)
+        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*`)
         if (!response.ok) throw new Error('Offerta non trovata')
         const data = await response.json()
         const rawOffer = data.data.attributes || data.data
