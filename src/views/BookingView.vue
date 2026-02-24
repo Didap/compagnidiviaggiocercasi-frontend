@@ -660,7 +660,7 @@ onMounted(fetchOffer)
                                             </div>
                                             <div class="flex items-center gap-2 text-xs text-slate-500">
                                                 <Heart class="w-4 h-4 text-red-400 flex-shrink-0" />
-                                                <span>Cancellazione gratuita entro 48h</span>
+                                                <span>Cancellazione gratuita entro 15gg</span>
                                             </div>
                                         </div>
                                     </div>
