@@ -26,6 +26,9 @@ import {
     User as UserIcon,
     CheckCircle2,
     XCircle,
+    CreditCard,
+    AlertTriangle,
+    Clock,
 } from 'lucide-vue-next'
 import { RouterLink } from 'vue-router'
 import { getImageUrl } from '@/utils/image'
@@ -294,6 +297,26 @@ const getCountdown = (booking: any) => {
     })
 }
 
+// Upcoming payments helper
+const getUpcomingPayments = (booking: any) => {
+    const steps = booking.paymentSteps || []
+    return steps.filter((s: any) => s.status !== 'paid')
+}
+
+const formatShortDate = (dateStr: string) => {
+    if (!dateStr) return ''
+    return new Date(dateStr).toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+    })
+}
+
+const isOverdue = (dateStr: string) => {
+    if (!dateStr) return false
+    return new Date(dateStr) < new Date(new Date().toDateString())
+}
+
 // Lightbox
 const openLightbox = (index: number) => {
     lightboxIndex.value = index
@@ -476,7 +499,7 @@ onMounted(async () => {
                                     class="w-full h-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
                                     <span class="text-4xl md:text-5xl font-black text-white">{{
                                         initials
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </div>
                             <!-- Edit overlay -->
@@ -621,7 +644,8 @@ onMounted(async () => {
                             <!-- Bookings List -->
                             <div class="space-y-6">
                                 <Card v-for="booking in paginatedBookings" :key="booking.id"
-                                    class="rounded-3xl border-none shadow-sm overflow-hidden bg-white relative">
+                                    @click="openDetail(booking)"
+                                    class="group rounded-3xl border-none shadow-sm overflow-hidden bg-white relative cursor-pointer hover:shadow-lg transition-all duration-200">
                                     <!-- Status Banner for Ongoing -->
                                     <div v-if="getTripStatus(booking) === 'ongoing'"
                                         class="bg-primary/10 px-6 py-2 flex items-center gap-2 text-primary font-bold text-sm">
@@ -689,33 +713,70 @@ onMounted(async () => {
 
                                         <!-- Content based on Status -->
 
-                                        <!-- IMMINENT: Excited message -->
-                                        <div v-if="getTripStatus(booking) === 'imminent'"
-                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4">
-                                            <div
-                                                class="w-16 h-16 rounded-full bg-orange-50 flex items-center justify-center mb-2 animate-bounce">
-                                                <Calendar class="w-8 h-8 text-orange-500" />
-                                            </div>
-                                            <h4 class="text-lg font-bold text-slate-900">Ci siamo quasi! 🌍</h4>
-                                            <p class="text-slate-500 max-w-sm mx-auto">
-                                                Manca pochissimo alla partenza. Hai controllato di avere tutto?
-                                                Passaporto, biglietti e voglia di avventura!
-                                            </p>
-                                        </div>
+                                        <!-- IMMINENT / FUTURE: Compact 2-column layout -->
+                                        <div v-if="['imminent', 'future'].includes(getTripStatus(booking))">
+                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+                                                <!-- Left: Status Message -->
+                                                <div
+                                                    class="flex flex-col items-center justify-center text-center space-y-3 py-4">
+                                                    <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                                                        :class="getTripStatus(booking) === 'imminent'
+                                                            ? 'bg-orange-50 animate-bounce'
+                                                            : 'bg-amber-50'">
+                                                        <Calendar class="w-6 h-6"
+                                                            :class="getTripStatus(booking) === 'imminent' ? 'text-orange-500' : 'text-amber-500'" />
+                                                    </div>
+                                                    <h4 class="text-base font-bold text-slate-900">
+                                                        {{ getTripStatus(booking) === 'imminent' ? 'Ci siamo quasi! 🌍'
+                                                        : 'Preparati a partire!' }}
+                                                    </h4>
+                                                    <p class="text-sm text-slate-500 max-w-xs mx-auto leading-relaxed">
+                                                        <template v-if="getTripStatus(booking) === 'imminent'">
+                                                            Manca pochissimo alla partenza. Passaporto, biglietti e
+                                                            voglia di avventura!
+                                                        </template>
+                                                        <template v-else>
+                                                            Il tuo viaggio è confermato. Ti manderemo i dettagli via
+                                                            email.
+                                                        </template>
+                                                    </p>
+                                                </div>
 
-                                        <!-- FUTURE (Upcoming): Standard prep -->
-                                        <div v-else-if="getTripStatus(booking) === 'future'"
-                                            class="flex flex-col items-center justify-center py-8 text-center space-y-4">
-                                            <div
-                                                class="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center mb-2">
-                                                <Calendar class="w-8 h-8 text-amber-500" />
+                                                <!-- Right: Upcoming Payments -->
+                                                <div v-if="getUpcomingPayments(booking).length > 0"
+                                                    class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                                                    <h5
+                                                        class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mb-3">
+                                                        <CreditCard class="w-3.5 h-3.5" />
+                                                        Prossime Scadenze
+                                                    </h5>
+                                                    <div class="space-y-1.5">
+                                                        <div v-for="(step, idx) in getUpcomingPayments(booking)"
+                                                            :key="idx"
+                                                            class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm"
+                                                            :class="isOverdue(step.dueDate)
+                                                                ? 'bg-red-50 border border-red-100'
+                                                                : 'bg-white border border-slate-50'">
+                                                            <div class="flex items-center gap-2 min-w-0">
+                                                                <AlertTriangle v-if="isOverdue(step.dueDate)"
+                                                                    class="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                                                                <Clock v-else
+                                                                    class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                                                <span class="font-semibold text-slate-800 truncate">{{
+                                                                    step.name }}</span>
+                                                            </div>
+                                                            <div class="flex items-center gap-3 flex-shrink-0">
+                                                                <span v-if="step.dueDate" class="text-xs"
+                                                                    :class="isOverdue(step.dueDate) ? 'text-red-500 font-bold' : 'text-slate-400'">
+                                                                    {{ formatShortDate(step.dueDate) }}
+                                                                </span>
+                                                                <span class="font-black text-slate-900">€{{ step.amount
+                                                                    }}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <h4 class="text-lg font-bold text-slate-900">Preparati a partire!</h4>
-                                            <p class="text-slate-500 max-w-sm mx-auto">
-                                                Il tuo viaggio è confermato. Inizia a sognare e a preparare l'itinerario
-                                                mentale.
-                                                Ti manderemo i dettagli via email.
-                                            </p>
                                         </div>
 
                                         <!-- ONGOING: Itinerary -->
@@ -785,7 +846,7 @@ onMounted(async () => {
                                                     Speriamo che il viaggio sia stato indimenticabile. Raccontaci la tua
                                                     esperienza!
                                                 </p>
-                                                <Button @click="openReview(booking)" variant="outline"
+                                                <Button @click.stop="openReview(booking)" variant="outline"
                                                     class="rounded-full px-8 border-slate-200 hover:border-primary hover:text-primary transition-colors">
                                                     Lascia una recensione
                                                 </Button>
@@ -805,14 +866,6 @@ onMounted(async () => {
                                                 contattaci.
                                             </p>
                                         </div>
-                                    </div>
-
-                                    <!-- Action Footer (Always Visible) -->
-                                    <div class="mt-6 pt-4 border-t border-slate-100 flex justify-center">
-                                        <Button @click="openDetail(booking)" variant="outline"
-                                            class="rounded-full w-full sm:w-auto border-slate-200 text-slate-600 hover:text-primary hover:border-primary transition-colors">
-                                            Vedi Dettagli Viaggio
-                                        </Button>
                                     </div>
                                 </Card>
                             </div>
@@ -870,7 +923,7 @@ onMounted(async () => {
                                                     <MapPin class="w-3.5 h-3.5 text-white/80" />
                                                     <span class="text-xs font-bold text-white/90">{{
                                                         trip.destination
-                                                        }}</span>
+                                                    }}</span>
                                                 </div>
                                             </div>
                                         </div>

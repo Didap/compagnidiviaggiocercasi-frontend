@@ -302,6 +302,18 @@ onMounted(fetchProposals)
                                 </div>
                             </div>
 
+                            <!-- Submitted At -->
+                            <div class="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-0.5">Inviata il</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ formatDate(selectedProposal.attributes.createdAt) }}</p>
+                                </div>
+                                <div v-if="selectedProposal.attributes.numberOfInterested">
+                                    <p class="text-xs font-bold text-slate-400 uppercase mb-0.5">Interessati</p>
+                                    <p class="text-sm font-black text-primary text-right">{{ selectedProposal.attributes.numberOfInterested }}</p>
+                                </div>
+                            </div>
+
                             <!-- User Info -->
                             <div class="flex items-center gap-3 pt-4 border-t border-slate-100">
                                 <div

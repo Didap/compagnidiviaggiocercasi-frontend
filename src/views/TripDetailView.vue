@@ -161,7 +161,7 @@ const formatDateRange = (offer: any) => {
 const getDuration = (offer: any) => {
   if (!offer?.startDate || !offer?.endDate) return ''
   const diff = Math.ceil((new Date(offer.endDate).getTime() - new Date(offer.startDate).getTime()) / (1000 * 60 * 60 * 24))
-  return `${diff} ${diff === 1 ? 'giorno' : 'giorni'} / ${diff - 1} ${diff - 1 === 1 ? 'notte' : 'notti'}`
+  return `${diff + 1} ${diff + 1 === 1 ? 'giorno' : 'giorni'} / ${diff} ${diff === 1 ? 'notte' : 'notti'}`
 }
 
 const formatShortDate = (d: string) => {

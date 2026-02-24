@@ -4,7 +4,7 @@ import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
-import { Star, Trash2, Loader2, Eye, EyeOff } from 'lucide-vue-next'
+import { Star, Trash2, Loader2, Eye, EyeOff, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { CardListSkeleton } from '@/components/ui/skeleton'
@@ -16,6 +16,7 @@ const toast = useToast()
 const reviews = ref<any[]>([])
 const loading = ref(true)
 const deleting = ref<string | null>(null)
+const selectedReview = ref<any>(null)
 
 // Confirm Modal State
 const showConfirm = ref(false)
@@ -133,7 +134,8 @@ onMounted(fetchReviews)
         <!-- Reviews List -->
         <div v-else class="space-y-4">
             <Card v-for="review in reviews" :key="review.documentId || review.id"
-                class="rounded-2xl border-none shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+                class="rounded-2xl border-none shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                @click="selectedReview = review">
                 <CardContent class="p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 min-w-0">
@@ -189,4 +191,86 @@ onMounted(fetchReviews)
     <!-- Confirm Dialog -->
     <ConfirmDialog :isOpen="showConfirm" title="Elimina Recensione" :message="confirmMessage"
         confirmText="Elimina definitivamente" variant="danger" @close="showConfirm = false" @confirm="confirmDelete" />
+
+    <!-- Review Details Modal -->
+    <Teleport to="body">
+        <Transition enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0"
+            enter-to-class="opacity-100" leave-active-class="transition duration-200 ease-in"
+            leave-from-class="opacity-100" leave-to-class="opacity-0">
+            <div v-if="selectedReview" class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="selectedReview = null"></div>
+                <div
+                    class="relative bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+                    <!-- Header -->
+                    <div
+                        class="p-6 border-b border-slate-100 flex items-center justify-between bg-white/80 backdrop-blur-md z-10">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900">Dettagli Recensione</h2>
+                            <p class="text-sm text-slate-500 font-medium">{{ getTripTitle(selectedReview) }}</p>
+                        </div>
+                        <button @click="selectedReview = null"
+                            class="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors text-slate-500">
+                            <X class="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="overflow-y-auto p-6 space-y-6">
+                        <!-- Status & Actions -->
+                        <div class="bg-slate-50 p-4 rounded-xl flex items-center justify-between">
+                            <Badge
+                                :class="selectedReview.publishedAt ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'"
+                                class="border-none font-bold">
+                                {{ selectedReview.publishedAt ? 'Pubblicata' : 'Bozza' }}
+                            </Badge>
+                            <div class="flex items-center gap-2">
+                                <button @click="togglePublish(selectedReview)"
+                                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors"
+                                    :class="selectedReview.publishedAt ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-green-100 text-green-700 hover:bg-green-200'">
+                                    {{ selectedReview.publishedAt ? 'Nascondi' : 'Pubblica' }}
+                                </button>
+                                <button @click="deleteReview(selectedReview); selectedReview = null"
+                                    class="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-xs font-bold transition-colors">
+                                    Elimina
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Author & Rating -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="p-4 rounded-xl border border-slate-100 bg-white">
+                                <p class="text-xs font-bold text-slate-400 uppercase mb-1">Autore</p>
+                                <p class="text-lg font-bold text-slate-900">{{ selectedReview.authorName || 'Anonimo' }}</p>
+                                <p v-if="selectedReview.user?.username" class="text-xs text-slate-400">@{{ selectedReview.user.username }}</p>
+                            </div>
+                            <div class="p-4 rounded-xl border border-slate-100 bg-white">
+                                <p class="text-xs font-bold text-slate-400 uppercase mb-1">Valutazione</p>
+                                <div class="flex items-center gap-1 mt-1">
+                                    <Star v-for="i in 5" :key="i" :class="[
+                                        'w-5 h-5',
+                                        i <= selectedReview.rating ? 'text-amber-400 fill-amber-400' : 'text-slate-200'
+                                    ]" />
+                                    <span class="ml-2 text-lg font-black text-slate-900">{{ selectedReview.rating }}/5</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Review Content -->
+                        <div v-if="selectedReview.content">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase mb-2">Contenuto</h3>
+                            <div class="p-4 border border-slate-100 rounded-xl bg-white text-slate-600 leading-relaxed text-sm">
+                                {{ selectedReview.content }}
+                            </div>
+                        </div>
+
+                        <!-- Travel Period -->
+                        <div v-if="selectedReview.travelPeriod" class="bg-slate-50 rounded-xl p-4">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Periodo di Viaggio</p>
+                            <p class="font-medium text-slate-800">{{ selectedReview.travelPeriod }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>

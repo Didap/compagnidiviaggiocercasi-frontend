@@ -10,6 +10,7 @@ import {
     Save, Loader2, ArrowLeft, Plus, Trash2, ImagePlus, GripVertical, Upload,
 } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
+import RichTextEditor from '@/components/dashboard/RichTextEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -267,9 +268,7 @@ onMounted(fetchTrip)
                     <div>
                         <label class="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Descrizione
                             Completa</label>
-                        <textarea v-model="form.description" rows="6"
-                            class="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y"
-                            placeholder="Descrivi il viaggio in dettaglio..."></textarea>
+                        <RichTextEditor v-model="form.description" placeholder="Descrivi il viaggio in dettaglio..." />
                     </div>
                 </CardContent>
             </Card>
@@ -365,9 +364,7 @@ onMounted(fetchTrip)
                             <input v-model="day.title" type="text"
                                 class="w-full h-10 px-3 rounded-lg border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                 :placeholder="`Titolo giorno ${i + 1}`" />
-                            <textarea v-model="day.description" rows="3"
-                                class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y"
-                                placeholder="Descrizione delle attività..."></textarea>
+                            <RichTextEditor v-model="day.description" placeholder="Descrizione delle attività..." />
                         </div>
                     </div>
                     <p v-else class="text-sm text-slate-400">Nessun giorno nell'itinerario</p>
