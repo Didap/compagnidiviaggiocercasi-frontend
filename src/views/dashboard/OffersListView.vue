@@ -54,6 +54,11 @@ interface InstallmentConfig {
     dueDate: string
 }
 
+interface Supplement {
+    name: string
+    price: number
+}
+
 const form = ref({
     trip: '',
     price: '',
@@ -64,11 +69,12 @@ const form = ref({
     occupiedSeats: '0',
     allowInstallments: false,
     installmentConfigs: [] as InstallmentConfig[],
-    itinerary: [] as { title: string; description: string }[]
+    itinerary: [] as { title: string; description: string }[],
+    supplements: [] as Supplement[]
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[] }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[], supplements: [] as Supplement[] }
     editingId.value = null
     formError.value = null
 }
@@ -103,7 +109,8 @@ const openEdit = (offer: any) => {
                 }
             })
             : [],
-        itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : []
+        itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : [],
+        supplements: Array.isArray(offer.supplements) ? offer.supplements.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : []
     }
     formError.value = null
     showForm.value = true
@@ -132,7 +139,7 @@ const fetchData = async () => {
     loading.value = true
     try {
         const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&sort=createdAt:desc`, {
+            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&populate[supplements]=*&sort=createdAt:desc`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             }),
             fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {
@@ -482,7 +489,8 @@ const saveOffer = async () => {
                         dueDate: c.dueDateType === 'precise' ? c.dueDate : null,
                     }))
                     : [],
-                itinerary: form.value.itinerary.filter(d => d.title.trim())
+                itinerary: form.value.itinerary.filter(d => d.title.trim()),
+                supplements: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 }))
             },
         }
 
@@ -836,6 +844,42 @@ onMounted(fetchData)
                                             pagamento rateale per questa offerta.</p>
                                     </div>
 
+                                    <!-- Supplements -->
+                                    <div class="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                                        <div class="flex items-center justify-between mb-4">
+                                            <Label class="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                                                Supplementi
+                                            </Label>
+                                        </div>
+
+                                        <div v-if="form.supplements.length > 0" class="space-y-3 mb-3">
+                                            <div v-for="(supp, i) in form.supplements" :key="i"
+                                                class="bg-white rounded-lg p-3 border border-slate-100 shadow-sm flex items-center gap-3">
+                                                <Input v-model="supp.name" type="text"
+                                                    class="flex-1 h-8 px-2 text-xs font-bold placeholder:font-normal"
+                                                    :placeholder="`Nome supplemento`" />
+                                                <div class="flex items-center gap-1">
+                                                    <Input v-model.number="supp.price" type="number" step="0.01" min="0"
+                                                        class="w-24 h-8 px-2 text-xs font-bold text-primary placeholder:font-normal"
+                                                        placeholder="0.00" />
+                                                    <span class="text-xs text-slate-400 font-bold">€</span>
+                                                </div>
+                                                <button @click="form.supplements.splice(i, 1)" type="button"
+                                                    class="text-slate-400 hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors">
+                                                    <Trash2 class="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <button @click="form.supplements.push({ name: '', price: 0 })" type="button"
+                                            class="w-full text-xs font-bold text-primary hover:text-primary/80 transition-colors px-3 py-2 bg-primary/10 rounded-lg flex items-center justify-center gap-1">
+                                            <Plus class="w-3 h-3" /> Aggiungi Supplemento
+                                        </button>
+                                        <p v-if="form.supplements.length === 0" class="text-xs text-slate-400 mt-2">
+                                            Aggiungi supplementi opzionali (es. camera singola, escursione extra, etc.)
+                                        </p>
+                                    </div>
+
                                     <p v-if="formError"
                                         class="text-sm text-red-500 font-medium bg-red-50 px-4 py-2 rounded-xl">
                                         {{ formError }}
@@ -1134,6 +1178,18 @@ onMounted(fetchData)
                                         <p class="text-sm font-black text-slate-900" v-if="cfg.amount">€{{ cfg.amount }}</p>
                                         <p class="text-[10px] text-slate-400 font-bold" v-if="cfg.percentage">{{ cfg.percentage.toFixed?.(1) || cfg.percentage }}%</p>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Supplements -->
+                        <div v-if="selectedOffer.supplements && selectedOffer.supplements.length > 0">
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Supplementi</h3>
+                            <div class="space-y-2">
+                                <div v-for="(supp, i) in selectedOffer.supplements" :key="i"
+                                    class="p-3 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
+                                    <span class="font-bold text-slate-800 text-sm">{{ supp.name }}</span>
+                                    <span class="font-black text-primary text-sm">+€{{ supp.price }}</span>
                                 </div>
                             </div>
                         </div>

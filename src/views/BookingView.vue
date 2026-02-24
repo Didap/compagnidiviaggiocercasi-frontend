@@ -52,11 +52,12 @@ const notes = ref('')
 const operatorCode = ref('')
 const requestInvoice = ref(false)
 const paymentOption = ref<'full' | 'deposit' | 'installments'>('deposit')
+const selectedSupplements = ref<Record<number, boolean>>({})
 
 const fetchOffer = async () => {
     try {
         const offerId = route.params.offerId
-        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*`)
+        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*&populate[supplements]=*`)
         if (!response.ok) throw new Error('Offerta non trovata')
         const data = await response.json()
         const rawOffer = data.data.attributes || data.data
@@ -132,7 +133,16 @@ const removeTraveler = (index: number) => {
     }
 }
 
-const totalAmount = computed(() => ((offer.value?.price || 0) + (offer.value?.depositPrice || 0)) * participants.value.length)
+const supplementsTotal = computed(() => {
+    const supps = offer.value?.supplements
+    if (!Array.isArray(supps)) return 0
+    return supps.reduce((sum: number, s: any, i: number) => {
+        if (selectedSupplements.value[i]) return sum + (Number(s.price) || 0)
+        return sum
+    }, 0) * participants.value.length
+})
+
+const totalAmount = computed(() => ((offer.value?.price || 0) + (offer.value?.depositPrice || 0)) * participants.value.length + supplementsTotal.value)
 const totalDeposit = computed(() => (offer.value?.depositPrice || 0) * participants.value.length)
 
 const installmentsAvailable = computed(() => {
@@ -162,7 +172,7 @@ const installmentsCount = computed(() => {
     return offer.value?.installmentsCount || 3
 })
 // Installments apply only to the price (excluding deposit)
-const totalPriceOnly = computed(() => (offer.value?.price || 0) * participants.value.length)
+const totalPriceOnly = computed(() => (offer.value?.price || 0) * participants.value.length + supplementsTotal.value)
 
 const installmentAmount = computed(() => {
     if (!installmentsAvailable.value) return 0
@@ -229,6 +239,9 @@ const submitBooking = async () => {
                 requestInvoice: requestInvoice.value,
                 paymentOption: paymentOption.value,
                 participants: participants.value,
+                selectedSupplements: Array.isArray(offer.value?.supplements)
+                    ? offer.value.supplements.filter((_: any, i: number) => selectedSupplements.value[i]).map((s: any) => ({ name: s.name, price: Number(s.price) || 0 }))
+                    : [],
                 user: user.value?.documentId || user.value?.id,
                 offer: route.params.offerId
             }
@@ -424,6 +437,43 @@ onMounted(fetchOffer)
                                 {{ isSoldOut ? 'Posti Esauriti' : (canAddTraveler ? 'Aggiungi un altro partecipante' :
                                     'Limite posti raggiunto') }}
                             </button>
+
+                            <!-- Supplements Section -->
+                            <div v-if="offer?.supplements && offer.supplements.length > 0"
+                                class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100">
+                                <h3 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+                                    <Plus class="w-6 h-6 text-primary/60" />
+                                    Supplementi Disponibili
+                                </h3>
+                                <p class="text-sm text-slate-500 mb-6">Seleziona i supplementi che desideri aggiungere (il prezzo è per partecipante)</p>
+
+                                <div class="space-y-3">
+                                    <label v-for="(supp, i) in offer.supplements" :key="i"
+                                        class="flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all group"
+                                        :class="selectedSupplements[i] ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
+                                        <div class="relative flex items-center">
+                                            <input type="checkbox" v-model="selectedSupplements[i]"
+                                                class="peer h-5 w-5 cursor-pointer appearance-none rounded border border-slate-200 bg-white transition-all checked:border-primary checked:bg-primary" />
+                                            <svg class="pointer-events-none absolute left-0.5 top-0.5 h-4 w-4 stroke-white opacity-0 transition-opacity peer-checked:opacity-100"
+                                                xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="4" stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <polyline points="20 6 9 17 4 12"></polyline>
+                                            </svg>
+                                        </div>
+                                        <div class="flex-1">
+                                            <span class="text-sm font-bold text-slate-800">{{ supp.name }}</span>
+                                        </div>
+                                        <span class="text-sm font-black text-primary">+{{ supp.price }}€</span>
+                                    </label>
+                                </div>
+
+                                <div v-if="supplementsTotal > 0"
+                                    class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Totale supplementi</span>
+                                    <span class="text-sm font-black text-primary">+{{ supplementsTotal }}€</span>
+                                </div>
+                            </div>
 
                             <!-- Notes Section -->
                             <div class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100">

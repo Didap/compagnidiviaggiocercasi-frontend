@@ -29,7 +29,7 @@ export function useProposals() {
                 body: JSON.stringify({
                     data: {
                         ...data,
-                        status: 'pending',
+                        proposalStatus: 'pending',
                         user: user.value.id
                     }
                 })
