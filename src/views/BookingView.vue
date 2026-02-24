@@ -57,7 +57,7 @@ const selectedSupplements = ref<Record<number, boolean>>({})
 const fetchOffer = async () => {
     try {
         const offerId = route.params.offerId
-        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*&populate[supplements]=*`)
+        const response = await fetch(`${apiUrl}/api/offers/${offerId}?populate[trip][populate]=*&populate[installmentConfigs]=*&populate[supplement]=*`)
         if (!response.ok) throw new Error('Offerta non trovata')
         const data = await response.json()
         const rawOffer = data.data.attributes || data.data
@@ -134,7 +134,7 @@ const removeTraveler = (index: number) => {
 }
 
 const supplementsTotal = computed(() => {
-    const supps = offer.value?.supplements
+    const supps = offer.value?.supplement
     if (!Array.isArray(supps)) return 0
     return supps.reduce((sum: number, s: any, i: number) => {
         if (selectedSupplements.value[i]) return sum + (Number(s.price) || 0)
@@ -239,8 +239,8 @@ const submitBooking = async () => {
                 requestInvoice: requestInvoice.value,
                 paymentOption: paymentOption.value,
                 participants: participants.value,
-                selectedSupplements: Array.isArray(offer.value?.supplements)
-                    ? offer.value.supplements.filter((_: any, i: number) => selectedSupplements.value[i]).map((s: any) => ({ name: s.name, price: Number(s.price) || 0 }))
+                selectedSupplements: Array.isArray(offer.value?.supplement)
+                    ? offer.value.supplement.filter((_: any, i: number) => selectedSupplements.value[i]).map((s: any) => ({ name: s.name, price: Number(s.price) || 0 }))
                     : [],
                 user: user.value?.documentId || user.value?.id,
                 offer: route.params.offerId
@@ -439,7 +439,7 @@ onMounted(fetchOffer)
                             </button>
 
                             <!-- Supplements Section -->
-                            <div v-if="offer?.supplements && offer.supplements.length > 0"
+                            <div v-if="offer?.supplement && offer.supplement.length > 0"
                                 class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100">
                                 <h3 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
                                     <Plus class="w-6 h-6 text-primary/60" />
@@ -448,7 +448,7 @@ onMounted(fetchOffer)
                                 <p class="text-sm text-slate-500 mb-6">Seleziona i supplementi che desideri aggiungere (il prezzo è per partecipante)</p>
 
                                 <div class="space-y-3">
-                                    <label v-for="(supp, i) in (offer.supplements as any[])" :key="i"
+                                    <label v-for="(supp, i) in (offer.supplement as any[])" :key="i"
                                         class="flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all group"
                                         :class="selectedSupplements[i] ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
                                         <div class="relative flex items-center">

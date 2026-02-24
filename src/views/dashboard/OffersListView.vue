@@ -110,7 +110,7 @@ const openEdit = (offer: any) => {
             })
             : [],
         itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : [],
-        supplements: Array.isArray(offer.supplements) ? offer.supplements.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : []
+        supplements: Array.isArray(offer.supplement) ? offer.supplement.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : []
     }
     formError.value = null
     showForm.value = true
@@ -139,7 +139,7 @@ const fetchData = async () => {
     loading.value = true
     try {
         const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&populate[supplements]=*&sort=createdAt:desc`, {
+            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&populate[supplement]=*&sort=createdAt:desc`, {
                 headers: { Authorization: `Bearer ${token.value}` },
             }),
             fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {
@@ -490,7 +490,7 @@ const saveOffer = async () => {
                     }))
                     : [],
                 itinerary: form.value.itinerary.filter(d => d.title.trim()),
-                supplements: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 }))
+                supplement: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 }))
             },
         }
 
@@ -1183,10 +1183,10 @@ onMounted(fetchData)
                         </div>
 
                         <!-- Supplements -->
-                        <div v-if="selectedOffer.supplements && selectedOffer.supplements.length > 0">
+                        <div v-if="selectedOffer.supplement && selectedOffer.supplement.length > 0">
                             <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Supplementi</h3>
                             <div class="space-y-2">
-                                <div v-for="(supp, i) in selectedOffer.supplements" :key="i"
+                                <div v-for="(supp, i) in selectedOffer.supplement" :key="i"
                                     class="p-3 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
                                     <span class="font-bold text-slate-800 text-sm">{{ supp.name }}</span>
                                     <span class="font-black text-primary text-sm">+€{{ supp.price }}</span>
