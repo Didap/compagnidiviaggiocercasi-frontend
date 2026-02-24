@@ -68,6 +68,10 @@ onUnmounted(() => {
           :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
           Blog
         </RouterLink>
+        <RouterLink to="/gift-card"
+          :class="['font-medium hover:text-primary transition-colors relative after:content-[\'\'] after:absolute after:left-0 after:bottom-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full text-secondary']">
+          Gift Card
+        </RouterLink>
       </div>
       <!-- Authenticated -->
       <div v-if="isAuthenticated" class="hidden md:flex items-center gap-3">
@@ -154,6 +158,11 @@ onUnmounted(() => {
                 class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
                 @click="isMobileMenuOpen = false">
                 Blog
+              </RouterLink>
+              <RouterLink to="/gift-card"
+                class="flex items-center gap-4 text-xl font-bold text-secondary hover:text-primary transition-colors p-3 rounded-2xl hover:bg-slate-50"
+                @click="isMobileMenuOpen = false">
+                Gift Card
               </RouterLink>
             </div>
 

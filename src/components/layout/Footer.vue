@@ -10,7 +10,8 @@ const links = {
         { label: 'Destinazioni', to: '/destinazioni' },
         { label: 'Chi Siamo', to: '/chi-siamo' },
         { label: 'Come Funziona', to: '/come-funziona' },
-        { label: 'Blog', to: '/blog' }
+        { label: 'Blog', to: '/blog' },
+        { label: 'Gift Card', to: '/gift-card' }
     ]
 }
 </script>
@@ -86,9 +87,13 @@ const links = {
             </div>
 
             <!-- Bottom -->
-            <div
-                class="pt-8 flex flex-col md:flex-row items-center justify-center gap-4 text-xs text-slate-500 text-center">
-                <p>&copy; {{ currentYear }} Compagni di viaggio cercasi srls. P.Iva 02778420741</p>
+            <div class="pt-8 border-t border-slate-200 space-y-3 text-center">
+                <p class="text-xs text-slate-500 leading-relaxed max-w-4xl mx-auto">
+                    COMPAGNI DI VIAGGIO CERCASI SRLS | Via Dalmazia 21/A, 72100 Brindisi (BR) | P.IVA/C.F. 02778420741 | REA BR-256121 | SCIA Agenzia Viaggi – Comune di Brindisi 25/06/2025 | RC e Garanzia Insolvenza: Sara Assicurazioni (valide fino al 01/07/2026) | PEC: <a href="mailto:compagnidiviaggiocercasi@pec.it" class="hover:text-primary transition-colors">compagnidiviaggiocercasi@pec.it</a> | &copy; {{ currentYear }} Tutti i diritti riservati
+                </p>
+                <a href="https://didap.it" target="_blank" rel="noopener noreferrer" class="text-xs text-slate-400 hover:text-primary transition-colors inline-block">
+                    developed by 🐵
+                </a>
             </div>
         </div>
     </footer>

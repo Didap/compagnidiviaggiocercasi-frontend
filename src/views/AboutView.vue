@@ -79,6 +79,39 @@ import Button from '@/components/ui/button/Button.vue'
                         </p>
                     </div>
 
+                    <!-- La nostra Storia -->
+                    <h2 class="text-4xl md:text-5xl font-black text-secondary leading-tight text-center !mt-24">La nostra
+                        Storia</h2>
+
+                    <div class="prose prose-xl mx-auto text-gray-600 font-medium leading-relaxed space-y-8">
+                        <p class="text-lg md:text-xl italic text-secondary font-bold text-center">
+                            Specialisti nei viaggi di gruppo tra sconosciuti... destinati a diventare amici.
+                        </p>
+                        <p>
+                            Tutto ha avuto inizio nel 2012, da un'idea di <strong>Stefano Ciucci</strong>, fondatore e admin del gruppo
+                            Compagni di Viaggio Cercasi su Facebook. Dopo una vacanza organizzata con altri viaggiatori
+                            mai incontrati prima, Stefano ha scoperto quanto possa essere potente e trasformativo un
+                            viaggio condiviso con perfetti sconosciuti. Quella semplice esperienza ha acceso una
+                            scintilla: unire persone con la stessa passione per l'avventura e la scoperta, anche se non
+                            si conoscono... ancora.
+                        </p>
+                        <p>
+                            Nasce così una community unica, dove chiunque può scegliere la propria meta tra quelle
+                            proposte e partire in compagnia, affidandosi a un team preparato e appassionato. Offriamo
+                            supporto professionale, prezzi agevolati rispetto ai listini ufficiali, e soprattutto
+                            un'atmosfera inclusiva in cui nascono nuove amicizie, legami autentici – e in certi casi,
+                            perfino l'amore.
+                        </p>
+                        <p>
+                            Per noi, il viaggio non è solo una destinazione, ma un'emozione da vivere insieme. Che tu
+                            parta da solo o in cerca di nuove esperienze, qui troverai persone con cui condividere
+                            risate, momenti indimenticabili, e magari anche una nuova parte di te.
+                        </p>
+                        <p class="text-lg md:text-xl font-bold text-primary text-center">
+                            Scegli la tua meta tra i nostri viaggi... al resto pensiamo noi.
+                        </p>
+                    </div>
+
                     <div class="grid md:grid-cols-2 gap-8 pt-16">
                         <div
                             class="bg-secondary/5 rounded-3xl p-10 border border-secondary/10 transition-all hover:shadow-xl group">
