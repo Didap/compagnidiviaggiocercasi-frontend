@@ -448,7 +448,7 @@ onMounted(fetchOffer)
                                 <p class="text-sm text-slate-500 mb-6">Seleziona i supplementi che desideri aggiungere (il prezzo è per partecipante)</p>
 
                                 <div class="space-y-3">
-                                    <label v-for="(supp, i) in offer.supplements" :key="i"
+                                    <label v-for="(supp, i) in (offer.supplements as any[])" :key="i"
                                         class="flex items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all group"
                                         :class="selectedSupplements[i] ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-100 hover:bg-slate-50'">
                                         <div class="relative flex items-center">
