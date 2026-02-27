@@ -63,15 +63,18 @@ import { RouterLink } from 'vue-router'
                 <div class="space-y-16">
 
                     <!-- Main Text -->
-                    <div class="prose prose-xl mx-auto text-gray-600 font-medium leading-relaxed space-y-8 text-center md:text-left">
+                    <div
+                        class="prose prose-xl mx-auto text-gray-600 font-medium leading-relaxed space-y-8 text-center md:text-left">
                         <p>
-                            Regalare un buono vacanza? <strong class="text-primary">Idea top!</strong> È il modo perfetto per dire
+                            Regalare un buono vacanza? <strong class="text-primary">Idea top!</strong> È il modo
+                            perfetto per dire
                             "Rilassati, divertiti e vivi un'esperienza da ricordare!" Senza lo stress di scegliere
                             destinazioni o date, lasci massima libertà a chi lo riceve.
                         </p>
                         <p>
                             Weekend, avventura, mare o città d'arte—qualsiasi sia il mood, con una gift card
-                            <strong class="text-secondary">Compagni di Viaggio Cercasi</strong> si regalano emozioni e momenti speciali.
+                            <strong class="text-secondary">Compagni di Viaggio Cercasi</strong> si regalano emozioni e
+                            momenti speciali.
                             Un pensiero originale che va oltre il classico regalo!
                         </p>
                     </div>
@@ -80,26 +83,32 @@ import { RouterLink } from 'vue-router'
                     <div class="grid md:grid-cols-2 gap-8">
                         <div
                             class="bg-primary/5 rounded-3xl p-10 border border-primary/10 transition-all hover:shadow-xl group">
-                            <div class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                 <Gift class="w-7 h-7 text-primary" />
                             </div>
-                            <h3 class="text-2xl font-black text-primary mb-4 group-hover:text-secondary transition-colors">
+                            <h3
+                                class="text-2xl font-black text-primary mb-4 group-hover:text-secondary transition-colors">
                                 Super Flessibile
                             </h3>
                             <p class="text-gray-500 font-medium leading-relaxed">
-                                Scegli l'importo che preferisci e regala ai tuoi cari la possibilità di vivere un'esperienza su misura.
+                                Scegli l'importo che preferisci e regala ai tuoi cari la possibilità di vivere
+                                un'esperienza su misura.
                             </p>
                         </div>
                         <div
                             class="bg-secondary/5 rounded-3xl p-10 border border-secondary/10 transition-all hover:shadow-xl group">
-                            <div class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                            <div
+                                class="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                                 <Sparkles class="w-7 h-7 text-secondary" />
                             </div>
-                            <h3 class="text-2xl font-black text-secondary mb-4 group-hover:text-primary transition-colors">
+                            <h3
+                                class="text-2xl font-black text-secondary mb-4 group-hover:text-primary transition-colors">
                                 Valida Ovunque
                             </h3>
                             <p class="text-gray-500 font-medium leading-relaxed">
-                                Valida su tutti i viaggi disponibili con una durata di un anno. C'è tutto il tempo per trovare la destinazione perfetta.
+                                Valida su tutti i viaggi disponibili con una durata di un anno. C'è tutto il tempo per
+                                trovare la destinazione perfetta.
                             </p>
                         </div>
                     </div>
@@ -116,10 +125,13 @@ import { RouterLink } from 'vue-router'
                         </div>
                         <h3 class="text-3xl md:text-4xl font-black text-primary">Un regalo semplice da acquistare</h3>
                         <p class="text-lg text-gray-600 font-medium leading-relaxed max-w-2xl mx-auto">
-                            Le gift card sono un'opzione super flessibile! Potete scegliere l'importo che preferite e regalarle
-                            ai vostri cari, dando loro la possibilità di vivere un'esperienza su misura. Sono valide su tutti i
+                            Le gift card sono un'opzione super flessibile! Potete scegliere l'importo che preferite e
+                            regalarle
+                            ai vostri cari, dando loro la possibilità di vivere un'esperienza su misura. Sono valide su
+                            tutti i
                             viaggi disponibili e hanno una durata di un anno, quindi c'è tutto il tempo per trovare la
-                            destinazione perfetta. Un regalo semplice da acquistare, ma che lascia spazio a grandi emozioni!
+                            destinazione perfetta. Un regalo semplice da acquistare, ma che lascia spazio a grandi
+                            emozioni!
                         </p>
                         <div class="pt-4">
                             <a href="mailto:info@compagnidiviaggiocercasi.it">
@@ -137,19 +149,20 @@ import { RouterLink } from 'vue-router'
         <section class="py-24 px-6 bg-bg-primary text-center">
             <div class="container mx-auto max-w-4xl">
                 <h2 class="text-4xl md:text-6xl font-black text-primary leading-tight mb-8">Unisciti alla Community</h2>
-                <p class="text-xl text-gray-600 font-medium mb-12">Ancora pochi passi e farai parte della nostra storia.</p>
+                <p class="text-xl text-gray-600 font-medium mb-12">Ancora pochi passi e farai parte della nostra storia.
+                </p>
                 <div class="flex flex-col sm:flex-row justify-center gap-4">
                     <RouterLink to="/destinazioni">
                         <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
                             Scopri i Viaggi
                         </Button>
                     </RouterLink>
-                    <a href="mailto:info@compagnidiviaggiocercasi.it">
+                    <RouterLink to="/contatti">
                         <Button variant="outline" size="lg"
                             class="h-16 px-12 text-xl rounded-full border-2 border-secondary/30 text-secondary hover:bg-secondary hover:text-white transition-all">
                             Contattaci
                         </Button>
-                    </a>
+                    </RouterLink>
                 </div>
             </div>
         </section>

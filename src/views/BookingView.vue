@@ -59,6 +59,9 @@ const selectedSupplements = ref<Record<number, boolean>>({})
 
 // Guest checkout & profile fields
 const guestEmail = ref('')
+const guestPhone = ref('')
+const guestPassword = ref('')
+const guestPasswordConfirm = ref('')
 const codiceFiscale = ref('')
 const address = ref('')
 const city = ref('')
@@ -236,10 +239,15 @@ const isFormValid = computed(() => {
         zip.value.trim() !== '' &&
         province.value.trim() !== ''
 
-    // Email required only for guests
+    // Email + password required only for guests
     const emailValid = isAuthenticated.value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.value)
+    const passwordValid = isAuthenticated.value || (
+        guestPassword.value.length >= 6 &&
+        guestPassword.value === guestPasswordConfirm.value
+    )
+    const phoneValid = isAuthenticated.value || guestPhone.value.trim() !== ''
 
-    return participantsValid && profileValid && emailValid
+    return participantsValid && profileValid && emailValid && passwordValid && phoneValid
 })
 
 const submitBooking = async () => {
@@ -281,8 +289,10 @@ const submitBooking = async () => {
             // Logged-in user: attach user ID
             payload.data.user = user.value?.documentId || user.value?.id
         } else {
-            // Guest checkout: attach email + name for auto account creation
+            // Guest checkout: attach email + name + password + phone for auto account creation
             payload.data.email = guestEmail.value
+            payload.data.password = guestPassword.value
+            payload.data.phone = guestPhone.value
             payload.data.firstName = participants.value[0]?.firstName || ''
             payload.data.lastName = participants.value[0]?.lastName || ''
         }
@@ -484,21 +494,52 @@ onMounted(fetchOffer)
                                     'Limite posti raggiunto') }}
                             </button>
 
-                            <!-- Guest Email Section (only for non-logged-in users) -->
+                            <!-- Guest Account Section (only for non-logged-in users) -->
                             <div v-if="!isAuthenticated"
                                 class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
                                     <Mail class="w-6 h-6 text-primary/60" />
                                     Il tuo Account
                                 </h3>
-                                <p class="text-sm text-slate-500 mb-6">Inserisci la tua email per creare automaticamente
+                                <p class="text-sm text-slate-500 mb-6">Inserisci i tuoi dati per creare automaticamente
                                     un account collegato alla prenotazione.</p>
-                                <div class="space-y-2">
-                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email
-                                        *</label>
-                                    <input v-model="guestEmail" type="email" placeholder="Es. mario.rossi@email.com"
-                                        class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
-                                        required />
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="space-y-2 md:col-span-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email
+                                            *</label>
+                                        <input v-model="guestEmail" type="email" placeholder="Es. mario.rossi@email.com"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            required />
+                                    </div>
+                                    <div class="space-y-2 md:col-span-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Numero
+                                            di Telefono *</label>
+                                        <input v-model="guestPhone" type="tel" placeholder="Es. +39 328 1234567"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            required />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Password
+                                            *</label>
+                                        <input v-model="guestPassword" type="password" placeholder="Minimo 6 caratteri"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            minlength="6" required />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Conferma
+                                            Password *</label>
+                                        <input v-model="guestPasswordConfirm" type="password"
+                                            placeholder="Ripeti la password"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            :class="guestPasswordConfirm && guestPassword !== guestPasswordConfirm ? 'border-red-300 ring-2 ring-red-100' : ''"
+                                            minlength="6" required />
+                                        <p v-if="guestPasswordConfirm && guestPassword !== guestPasswordConfirm"
+                                            class="text-xs text-red-500 ml-1">Le password non coincidono</p>
+                                    </div>
                                 </div>
                             </div>
 
@@ -655,7 +696,8 @@ onMounted(fetchOffer)
                                             <Users class="w-5 h-5 text-primary flex-shrink-0" />
                                             <span class="text-sm font-medium">{{ participants.length }} {{
                                                 participants.length === 1 ?
-                                                    'partecipante' : 'partecipanti' }} ({{ offer.price }}€ cad.)</span>
+                                                    'partecipante' : 'partecipanti' }} ({{ offer.price + offer.depositPrice
+                                                }}€ cad.)</span>
                                         </div>
 
                                         <!-- Invoice Request (Relocated to Sidebar) -->
@@ -750,7 +792,7 @@ onMounted(fetchOffer)
                                                         firstPaymentLabel
                                                     }}</span>
                                                 <span class="text-2xl font-black text-primary">{{ firstPaymentAmount
-                                                }}€</span>
+                                                    }}€</span>
                                             </div>
 
                                             <Button @click="submitBooking"
@@ -788,13 +830,23 @@ onMounted(fetchOffer)
                             </Card>
 
                             <!-- Help Box -->
-                            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex gap-4">
-                                <Users class="w-6 h-6 text-primary/40 shrink-0" />
-                                <div>
-                                    <h4 class="font-bold text-slate-700">Ti servono info?</h4>
-                                    <p class="text-sm text-slate-500 mt-1">Siamo qui per aiutarti a pianificare la tua
-                                        avventura.</p>
+                            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 space-y-4">
+                                <div class="flex gap-4">
+                                    <Users class="w-6 h-6 text-primary/40 shrink-0" />
+                                    <div>
+                                        <h4 class="font-bold text-slate-700">Ti servono info?</h4>
+                                        <p class="text-sm text-slate-500 mt-1">Siamo qui per aiutarti a pianificare la
+                                            tua
+                                            avventura.</p>
+                                    </div>
                                 </div>
+                                <a href="tel:+393282437881" class="block">
+                                    <Button variant="outline"
+                                        class="w-full rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 font-bold gap-2">
+                                        <Phone class="w-4 h-4" />
+                                        Chiamaci ora
+                                    </Button>
+                                </a>
                             </div>
                         </div>
                     </div>

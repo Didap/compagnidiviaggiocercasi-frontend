@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, nextTick } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
@@ -21,6 +21,7 @@ import {
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import RichTextEditor from '@/components/dashboard/RichTextEditor.vue'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -44,6 +45,7 @@ const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
 const formError = ref<string | null>(null)
+const isInternalLoading = ref(false)
 
 interface InstallmentConfig {
     name: string
@@ -71,11 +73,12 @@ const form = ref({
     installmentConfigs: [] as InstallmentConfig[],
     itinerary: [] as { title: string; description: string }[],
     supplements: [] as Supplement[],
-    daysBeforeClose: 30
+    daysBeforeClose: 30,
+    attivo: true
 })
 
 const resetForm = () => {
-    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[], supplements: [] as Supplement[], daysBeforeClose: 30 }
+    form.value = { trip: '', price: '', depositPrice: '', startDate: '', endDate: '', maxParticipants: '', occupiedSeats: '0', allowInstallments: false, installmentConfigs: [] as InstallmentConfig[], itinerary: [] as { title: string; description: string }[], supplements: [] as Supplement[], daysBeforeClose: 30, attivo: true }
     editingId.value = null
     formError.value = null
 }
@@ -86,6 +89,7 @@ const openCreate = () => {
 }
 
 const openEdit = (offer: any) => {
+    isInternalLoading.value = true
     editingId.value = offer.documentId || offer.id
     form.value = {
         trip: offer.trip?.documentId || offer.trip?.id || offer.trip?.data?.id || '',
@@ -112,10 +116,13 @@ const openEdit = (offer: any) => {
             : [],
         itinerary: offer.itinerary ? offer.itinerary.map((d: any) => ({ title: d.title || '', description: d.description || '' })) : [],
         supplements: Array.isArray(offer.supplement) ? offer.supplement.map((s: any) => ({ name: s.name || '', price: Number(s.price) || 0 })) : [],
-        daysBeforeClose: typeof offer.daysBeforeClose === 'number' ? offer.daysBeforeClose : 30
+        daysBeforeClose: typeof offer.daysBeforeClose === 'number' ? offer.daysBeforeClose : 30,
+        attivo: offer.attivo !== undefined ? offer.attivo : true
     }
     formError.value = null
     showForm.value = true
+    // Allow watchers to fire normally after this tick
+    nextTick(() => { isInternalLoading.value = false })
 }
 
 const openDetails = async (offer: any) => {
@@ -167,14 +174,32 @@ const recalcAmounts = () => {
     const configs = form.value.installmentConfigs
     const count = configs.length
     if (count === 0 || price === 0) return
-    const evenAmount = Math.floor((price / count) * 100) / 100
-    let usedSum = 0
-    configs.forEach((c, i) => {
-        const isLast = i === count - 1
-        c.amount = isLast ? Math.round((price - usedSum) * 100) / 100 : evenAmount
-        usedSum += c.amount
-        c.percentage = Math.round((c.amount / price) * 1000) / 10
-    })
+
+    // Check if installments already have custom amounts
+    const currentSum = configs.reduce((s, c) => s + (c.amount || 0), 0)
+
+    if (currentSum > 0) {
+        // Proportional scaling: preserve relative proportions
+        let usedSum = 0
+        configs.forEach((c, i) => {
+            const isLast = i === count - 1
+            c.amount = isLast
+                ? Math.round((price - usedSum) * 100) / 100
+                : Math.round((c.amount / currentSum * price) * 100) / 100
+            usedSum += c.amount
+            c.percentage = Math.round((c.amount / price) * 1000) / 10
+        })
+    } else {
+        // Even split (first time enabling installments)
+        const evenAmount = Math.floor((price / count) * 100) / 100
+        let usedSum = 0
+        configs.forEach((c, i) => {
+            const isLast = i === count - 1
+            c.amount = isLast ? Math.round((price - usedSum) * 100) / 100 : evenAmount
+            usedSum += c.amount
+            c.percentage = Math.round((c.amount / price) * 1000) / 10
+        })
+    }
 }
 
 const addInstallment = () => {
@@ -218,8 +243,9 @@ watch(() => form.value.allowInstallments, (val) => {
     }
 })
 
-// Recalculate amounts when price changes
+// Recalculate amounts when price changes (but not during form population)
 watch(() => form.value.price, () => {
+    if (isInternalLoading.value) return
     if (form.value.installmentConfigs.length > 0) {
         recalcAmounts()
     }
@@ -486,6 +512,7 @@ const saveOffer = async () => {
                     ? form.value.installmentConfigs.filter(c => c.name.trim() && c.percentage > 0).map(c => ({
                         name: c.name,
                         percentage: c.percentage,
+                        amount: c.amount,
                         dueDateType: c.dueDateType,
                         relativeMonths: c.dueDateType === 'relative' ? c.relativeMonths : null,
                         dueDate: c.dueDateType === 'precise' ? c.dueDate : null,
@@ -493,7 +520,8 @@ const saveOffer = async () => {
                     : [],
                 itinerary: form.value.itinerary.filter(d => d.title.trim()),
                 supplement: form.value.supplements.filter(s => s.name.trim()).map(s => ({ name: s.name, price: Number(s.price) || 0 })),
-                daysBeforeClose: Number(form.value.daysBeforeClose) || 30
+                daysBeforeClose: Number(form.value.daysBeforeClose) || 30,
+                attivo: form.value.attivo
             },
         }
 
@@ -604,9 +632,20 @@ onMounted(fetchData)
                     <div
                         class="relative bg-white rounded-3xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
                         <div class="flex items-center justify-between p-6 border-b border-slate-100 shrink-0">
-                            <h2 class="text-xl font-bold text-slate-900">
-                                {{ editingId ? 'Modifica Offerta' : 'Nuova Offerta' }}
-                            </h2>
+                            <div class="flex items-center gap-4">
+                                <h2 class="text-xl font-bold text-slate-900">
+                                    {{ editingId ? 'Modifica Offerta' : 'Nuova Offerta' }}
+                                </h2>
+                                <div
+                                    class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                                    <Switch id="offer-active" :checked="form.attivo"
+                                        @update:checked="(v: boolean) => form.attivo = v" />
+                                    <Label for="offer-active" class="text-xs font-bold cursor-pointer"
+                                        :class="form.attivo ? 'text-green-600' : 'text-slate-500'">
+                                        {{ form.attivo ? 'Attiva' : 'Inattiva' }}
+                                    </Label>
+                                </div>
+                            </div>
                             <button @click="showForm = false"
                                 class="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-50">
                                 <X class="w-5 h-5" />
@@ -671,8 +710,7 @@ onMounted(fetchData)
                                                 </PopoverTrigger>
                                                 <PopoverContent class="w-auto p-0 z-[100]" align="start">
                                                     <CalendarComponent mode="single" locale="it-IT"
-                                                        v-model="startDateValue"
-                                                        initial-focus />
+                                                        v-model="startDateValue" initial-focus />
                                                 </PopoverContent>
                                             </Popover>
                                         </div>
@@ -690,8 +728,7 @@ onMounted(fetchData)
                                                 </PopoverTrigger>
                                                 <PopoverContent class="w-auto p-0 z-[100]" align="start">
                                                     <CalendarComponent mode="single" locale="it-IT"
-                                                        v-model="endDateValue"
-                                                        initial-focus />
+                                                        v-model="endDateValue" initial-focus />
                                                 </PopoverContent>
                                             </Popover>
                                         </div>
@@ -715,11 +752,13 @@ onMounted(fetchData)
 
                                     <!-- Days Before Close -->
                                     <div class="mt-4">
-                                        <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Chiusura prenotazioni (giorni prima della partenza)</Label>
+                                        <Label class="text-xs font-bold text-slate-400 uppercase mb-1.5 block">Chiusura
+                                            prenotazioni (giorni prima della partenza)</Label>
                                         <Input v-model="form.daysBeforeClose" type="number"
                                             class="w-full h-11 px-4 rounded-xl border border-slate-200 text-sm font-medium text-slate-800 focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary transition-all placeholder:font-normal"
                                             placeholder="30" />
-                                        <p class="text-xs text-slate-400 mt-1">Es. 7 = le prenotazioni chiudono una settimana prima della partenza</p>
+                                        <p class="text-xs text-slate-400 mt-1">Es. 7 = le prenotazioni chiudono una
+                                            settimana prima della partenza</p>
                                     </div>
 
                                     <!-- Installment Configuration -->
@@ -905,8 +944,8 @@ onMounted(fetchData)
                                             <div class="flex items-center gap-2">
                                                 <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">
                                                     Itinerario Offerta</h3>
-                                                <span v-if="offerDuration > 0" class="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                                                    :class="form.itinerary.length === offerDuration
+                                                <span v-if="offerDuration > 0"
+                                                    class="text-[10px] font-bold px-2 py-0.5 rounded-full" :class="form.itinerary.length === offerDuration
                                                         ? 'bg-green-100 text-green-700'
                                                         : 'bg-orange-100 text-orange-700'">
                                                     {{ form.itinerary.length }}/{{ offerDuration }} giorni
@@ -941,9 +980,8 @@ onMounted(fetchData)
                                                         <input v-model="day.title" type="text"
                                                             class="w-full h-9 px-3 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                                                             :placeholder="`Titolo giorno ${i + 1}`" />
-                                                        <textarea v-model="day.description" rows="3"
-                                                            class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all resize-y"
-                                                            placeholder="Descrizione..."></textarea>
+                                                        <RichTextEditor v-model="day.description"
+                                                            placeholder="Descrizione..." />
                                                     </div>
                                                 </div>
                                             </div>
@@ -1020,8 +1058,7 @@ onMounted(fetchData)
                         </tr>
                     </thead>
                     <tbody>
-                        <tr v-for="offer in offers" :key="offer.documentId || offer.id"
-                            @click="openDetails(offer)"
+                        <tr v-for="offer in offers" :key="offer.documentId || offer.id" @click="openDetails(offer)"
                             class="border-b border-slate-50 hover:bg-slate-50/50 transition-colors cursor-pointer">
                             <td class="py-4 px-6">
                                 <p class="font-bold text-slate-800">{{ getTripTitle(offer) }}</p>
@@ -1033,7 +1070,7 @@ onMounted(fetchData)
                                 </div>
                             </td>
                             <td class="py-4 px-4 text-right">
-                                <span class="font-bold text-slate-800">€{{ offer.price }}</span>
+                                <span class="font-bold text-slate-800">€{{ offer.price + offer.depositPrice }}</span>
                             </td>
                             <td class="py-4 px-4 text-center hidden sm:table-cell">
                                 <Badge
@@ -1095,7 +1132,17 @@ onMounted(fetchData)
                         <div class="bg-slate-50 rounded-2xl p-6">
                             <div class="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p class="text-xs font-bold text-slate-400 uppercase mb-1">Periodo</p>
+                                    <div class="flex items-center gap-2 mb-1">
+                                        <p class="text-xs font-bold text-slate-400 uppercase">Periodo</p>
+                                        <Badge v-if="selectedOffer.attivo === false" variant="outline"
+                                            class="text-[9px] uppercase font-bold text-slate-500 border-slate-200 bg-white">
+                                            Inattiva
+                                        </Badge>
+                                        <Badge v-else variant="outline"
+                                            class="text-[9px] uppercase font-bold text-green-600 border-green-200 bg-green-50">
+                                            Attiva
+                                        </Badge>
+                                    </div>
                                     <div class="flex items-center gap-2 font-bold text-slate-800">
                                         <Calendar class="w-4 h-4 text-primary" />
                                         {{ formatDate(selectedOffer.startDate) }} – {{ formatDate(selectedOffer.endDate)
@@ -1164,20 +1211,25 @@ onMounted(fetchData)
                         </div>
 
                         <!-- Installment Plan -->
-                        <div v-if="selectedOffer.allowInstallments && selectedOffer.installmentConfigs && selectedOffer.installmentConfigs.length > 0">
-                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Piano Rateale</h3>
+                        <div
+                            v-if="selectedOffer.allowInstallments && selectedOffer.installmentConfigs && selectedOffer.installmentConfigs.length > 0">
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Piano Rateale
+                            </h3>
                             <div class="space-y-3">
                                 <div v-for="(cfg, i) in selectedOffer.installmentConfigs" :key="i"
                                     class="p-4 rounded-xl border border-slate-100 bg-white flex items-center justify-between">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                                        <div
+                                            class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                                             {{ Number(i) + 1 }}
                                         </div>
                                         <div>
-                                            <p class="font-bold text-slate-800 text-sm">{{ cfg.name || `Rata ${Number(i) + 1}` }}</p>
+                                            <p class="font-bold text-slate-800 text-sm">{{ cfg.name || `Rata ${Number(i)
+                                                + 1}` }}</p>
                                             <p class="text-xs text-slate-400">
                                                 <template v-if="cfg.dueDateType === 'relative' && cfg.relativeMonths">
-                                                    {{ cfg.relativeMonths }} {{ cfg.relativeMonths === 1 ? 'mese' : 'mesi' }} prima della partenza
+                                                    {{ cfg.relativeMonths }} {{ cfg.relativeMonths === 1 ? 'mese' :
+                                                        'mesi' }} prima della partenza
                                                 </template>
                                                 <template v-else-if="cfg.dueDate">
                                                     Scadenza: {{ formatDate(cfg.dueDate) }}
@@ -1187,8 +1239,11 @@ onMounted(fetchData)
                                         </div>
                                     </div>
                                     <div class="text-right">
-                                        <p class="text-sm font-black text-slate-900" v-if="cfg.amount">€{{ cfg.amount }}</p>
-                                        <p class="text-[10px] text-slate-400 font-bold" v-if="cfg.percentage">{{ cfg.percentage.toFixed?.(1) || cfg.percentage }}%</p>
+                                        <p class="text-sm font-black text-slate-900" v-if="cfg.amount">€{{ cfg.amount }}
+                                        </p>
+                                        <p class="text-[10px] text-slate-400 font-bold" v-if="cfg.percentage">{{
+                                            cfg.percentage.toFixed?.(1) ||
+                                            cfg.percentage }}%</p>
                                     </div>
                                 </div>
                             </div>
@@ -1208,12 +1263,18 @@ onMounted(fetchData)
 
                         <!-- Itinerary -->
                         <div v-if="selectedOffer.itinerary && selectedOffer.itinerary.length > 0">
-                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Itinerario Personalizzato</h3>
+                            <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider mb-4">Itinerario
+                                Personalizzato</h3>
                             <div class="space-y-0 relative border-l-2 border-slate-100 ml-3 pl-6 pb-2">
                                 <div v-for="(day, i) in selectedOffer.itinerary" :key="i" class="mb-6 relative">
-                                    <div class="absolute -left-[27px] top-0 w-3 h-3 rounded-full bg-white border-[3px] border-primary"></div>
+                                    <div
+                                        class="absolute -left-[27px] top-0 w-3 h-3 rounded-full bg-white border-[3px] border-primary">
+                                    </div>
                                     <h4 class="text-sm font-bold text-slate-800 mb-1 flex items-center gap-2">
-                                        <span class="text-[10px] font-black text-white bg-primary px-1.5 py-0.5 rounded">Giorno {{ Number(i) + 1 }}</span>
+                                        <span
+                                            class="text-[10px] font-black text-white bg-primary px-1.5 py-0.5 rounded">Giorno
+                                            {{ Number(i) + 1
+                                            }}</span>
                                         {{ day.title }}
                                     </h4>
                                     <p class="text-slate-500 text-xs leading-relaxed" v-html="day.description"></p>

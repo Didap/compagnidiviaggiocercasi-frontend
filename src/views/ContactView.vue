@@ -39,7 +39,8 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
                         <span class="text-secondary/80">ascoltarti.</span>
                     </h1>
                     <p class="text-xl md:text-2xl text-gray-600 font-medium max-w-2xl mx-auto leading-relaxed mt-6">
-                        Hai domande sui nostri viaggi, vuoi collaborare con noi o semplicemente farci un saluto? Scrivici.
+                        Hai domande sui nostri viaggi, vuoi collaborare con noi o semplicemente farci un saluto?
+                        Scrivici.
                     </p>
                 </div>
             </div>
@@ -57,7 +58,7 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
         <section class="py-24 px-6 bg-white shrink-0">
             <div class="container mx-auto max-w-6xl">
                 <div class="grid lg:grid-cols-[1fr_1.5fr] gap-16 lg:gap-24 items-start">
-                    
+
                     <!-- Info Sidebar -->
                     <div class="space-y-12">
                         <div>
@@ -66,33 +67,39 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
                                 Preferisci usare altri canali? Nessun problema, ecco dove puoi trovarci.
                             </p>
                         </div>
-                        
+
                         <div class="space-y-8">
                             <!-- Email -->
                             <div class="flex items-start gap-6 group">
-                                <div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
+                                <div
+                                    class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0 group-hover:bg-primary group-hover:text-white transition-colors shadow-sm">
                                     <Mail class="w-6 h-6" />
                                 </div>
                                 <div>
                                     <h4 class="text-lg font-bold text-slate-800 mb-1">Email</h4>
-                                    <a href="mailto:info@compagnidiviaggiocercasi.it" class="text-slate-500 font-medium hover:text-primary transition-colors hover:underline">info@compagnidiviaggiocercasi.it</a>
+                                    <a href="mailto:info@compagnidiviaggiocercasi.it"
+                                        class="text-slate-500 font-medium hover:text-primary transition-colors hover:underline">info@compagnidiviaggiocercasi.it</a>
                                 </div>
                             </div>
 
                             <!-- Phone -->
                             <div class="flex items-start gap-6 group">
-                                <div class="w-14 h-14 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0 group-hover:bg-secondary group-hover:text-white transition-colors shadow-sm">
+                                <div
+                                    class="w-14 h-14 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center shrink-0 group-hover:bg-secondary group-hover:text-white transition-colors shadow-sm">
                                     <Phone class="w-6 h-6" />
                                 </div>
                                 <div>
                                     <h4 class="text-lg font-bold text-slate-800 mb-1">Telefono / WhatsApp</h4>
-                                    <a href="tel:+393282437881" class="text-slate-500 font-medium hover:text-secondary transition-colors hover:underline">+39 328 243 7881</a>
+                                    <a href="tel:+393282437881"
+                                        class="text-slate-500 font-medium hover:text-secondary transition-colors hover:underline">+39
+                                        328 243 7881</a>
                                 </div>
                             </div>
 
                             <!-- Address -->
                             <div class="flex items-start gap-6 group">
-                                <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-800 group-hover:text-white transition-colors shadow-sm">
+                                <div
+                                    class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:bg-slate-800 group-hover:text-white transition-colors shadow-sm">
                                     <MapPin class="w-6 h-6" />
                                 </div>
                                 <div>
@@ -113,7 +120,7 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
                                     class="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-primary hover:text-white hover:border-primary hover:shadow-lg hover:shadow-primary/30 hover:-translate-y-1 transition-all duration-300">
                                     <Instagram class="w-5 h-5" />
                                 </a>
-                                <a href="https://www.facebook.com/groups/13884438311465622" target="_blank"
+                                <a href="https://www.facebook.com/groups/1388438311465622" target="_blank"
                                     class="w-12 h-12 rounded-full bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] hover:shadow-lg hover:shadow-[#1877F2]/30 hover:-translate-y-1 transition-all duration-300">
                                     <Facebook class="w-5 h-5" />
                                 </a>
@@ -134,7 +141,8 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
 </template>
 
 <style scoped>
-h1, h2 {
+h1,
+h2 {
     font-feature-settings: "ss01", "ss02", "salt";
 }
 </style>

@@ -25,7 +25,7 @@ const isFiltersOpen = ref(false)
 
 // Computed Filter Logic
 const filteredTrips = computed(() => {
-    return trips.value.filter(trip => {
+    const filtered = trips.value.filter(trip => {
         // Handle both v4 (attributes) and v5 (flat) structures
         const t = trip.attributes || trip
         const offersRaw = t.offers
@@ -87,7 +87,27 @@ const filteredTrips = computed(() => {
         }
 
         return true
-    })
+    });
+
+    return filtered.sort((a: any, b: any) => {
+        const getEarliestDate = (trip: any) => {
+            const t = trip.attributes || trip;
+            const offersRaw = t.offers;
+            const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : []);
+
+            let earliest = Infinity;
+            offers.forEach((o: any) => {
+                const oData = o.attributes || o;
+                if (oData.startDate) {
+                    const time = new Date(oData.startDate).getTime();
+                    if (time < earliest) earliest = time;
+                }
+            });
+            return earliest;
+        };
+
+        return getEarliestDate(a) - getEarliestDate(b);
+    });
 })
 
 const calculatePriceBounds = () => {

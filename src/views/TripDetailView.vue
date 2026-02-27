@@ -38,7 +38,7 @@ const apiUrl = import.meta.env.VITE_API_URL
 const fetchTrip = async () => {
   try {
     const slug = route.params.slug
-    const response = await fetch(`${apiUrl}/api/trips?filters[slug][$eq]=${slug}&populate[image][fields]=url&populate[gallery][fields]=url&populate[reviews][populate]=*&populate[itinerary][populate]=*&populate[offers][populate][itinerary][populate]=*`)
+    const response = await fetch(`${apiUrl}/api/trips?filters[slug][$eq]=${slug}&populate[image][fields]=url&populate[gallery][fields]=url&populate[reviews][populate]=*&populate[itinerary][populate]=*&populate[offers][filters][attivo][$eq]=true&populate[offers][populate][itinerary][populate]=*`)
     if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`)
     const data = await response.json()
     if (data.data && data.data.length > 0) {

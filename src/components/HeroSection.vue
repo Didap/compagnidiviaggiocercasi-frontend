@@ -66,13 +66,13 @@ import Button from '@/components/ui/button/Button.vue'
 
         <!-- CTAs -->
         <div class="flex flex-col sm:flex-row justify-center gap-4 pt-8">
-          <Button size="lg"
+          <Button as-child size="lg"
             class="h-14 px-10 text-lg rounded-full shadow-xl shadow-primary/20 hover:shadow-2xl hover:shadow-primary/30 transition-all hover:-translate-y-1">
-            Scopri i Viaggi
+            <RouterLink to="/destinazioni">Scopri i Viaggi</RouterLink>
           </Button>
-          <Button variant="outline" size="lg"
+          <Button as-child variant="outline" size="lg"
             class="h-14 px-10 text-lg rounded-full border-2 border-secondary/30 text-secondary hover:bg-secondary hover:text-white transition-all">
-            Chi Siamo
+            <RouterLink to="/chi-siamo">Chi Siamo</RouterLink>
           </Button>
         </div>
       </div>
