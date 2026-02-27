@@ -50,6 +50,11 @@ const router = createRouter({
       component: () => import('../views/AboutView.vue'),
     },
     {
+      path: '/contatti',
+      name: 'contact',
+      component: () => import('../views/ContactView.vue'),
+    },
+    {
       path: '/gift-card',
       name: 'gift-card',
       component: () => import('../views/GiftCardView.vue'),
@@ -63,6 +68,16 @@ const router = createRouter({
       path: '/blog/:slug',
       name: 'post-detail',
       component: () => import('../views/PostDetailView.vue'),
+    },
+    {
+      path: '/privacy-policy',
+      name: 'privacy-policy',
+      component: () => import('../views/PrivacyView.vue'),
+    },
+    {
+      path: '/cookie-policy',
+      name: 'cookie-policy',
+      component: () => import('../views/CookieView.vue'),
     },
     {
       path: '/registrati',

@@ -73,8 +73,7 @@ const links = {
                         </li>
                         <li class="flex items-center gap-4">
                             <Mail class="w-5 h-5 text-primary flex-shrink-0" />
-                            <a href="mailto:info@compagnidiviaggiocercasi.it"
-                                class="text-sm hover:text-primary transition-colors">info@compagnidiviaggiocercasi.it</a>
+                            <RouterLink to="/contatti" class="text-sm hover:text-primary transition-colors">Scrivici un messaggio</RouterLink>
                         </li>
                         <li class="flex items-center gap-4">
                             <Phone class="w-5 h-5 text-primary flex-shrink-0" />
@@ -87,13 +86,22 @@ const links = {
             </div>
 
             <!-- Bottom -->
-            <div class="pt-8 border-t border-slate-200 space-y-3 text-center">
+            <div class="pt-8 border-t border-slate-200 mt-16 space-y-4 text-center">
                 <p class="text-xs text-slate-500 leading-relaxed max-w-4xl mx-auto">
-                    COMPAGNI DI VIAGGIO CERCASI SRLS | Via Dalmazia 21/A, 72100 Brindisi (BR) | P.IVA/C.F. 02778420741 | REA BR-256121 | SCIA Agenzia Viaggi – Comune di Brindisi 25/06/2025 | RC e Garanzia Insolvenza: Sara Assicurazioni (valide fino al 01/07/2026) | PEC: <a href="mailto:compagnidiviaggiocercasi@pec.it" class="hover:text-primary transition-colors">compagnidiviaggiocercasi@pec.it</a> | &copy; {{ currentYear }} Tutti i diritti riservati
+                    COMPAGNI DI VIAGGIO CERCASI SRLS | Via Dalmazia 21/A, 72100 Brindisi (BR) | P.IVA/C.F. 02778420741 | REA BR-256121 | SCIA Agenzia Viaggi – Comune di Brindisi 25/06/2025 | RC e Garanzia Insolvenza: Sara Assicurazioni (valide fino al 01/07/2026) | PEC: <a href="mailto:compagnidiviaggiocercasi@pec.it" class="hover:text-primary transition-colors">compagnidiviaggiocercasi@pec.it</a>
                 </p>
-                <a href="https://didap.it" target="_blank" rel="noopener noreferrer" class="text-xs text-slate-400 hover:text-primary transition-colors inline-block">
-                    developed by 🐵
-                </a>
+                <div class="flex flex-wrap justify-center items-center gap-4 text-xs text-slate-500">
+                    <span>&copy; {{ currentYear }} Tutti i diritti riservati</span>
+                    <span class="hidden sm:inline text-slate-300">|</span>
+                    <RouterLink to="/privacy-policy" class="hover:text-primary transition-colors">Privacy Policy</RouterLink>
+                    <span class="hidden sm:inline text-slate-300">|</span>
+                    <RouterLink to="/cookie-policy" class="hover:text-primary transition-colors">Cookie Policy</RouterLink>
+                </div>
+                <div class="pt-2">
+                    <a href="https://didap.it" target="_blank" rel="noopener noreferrer" class="text-xs text-slate-400 hover:text-primary transition-colors inline-block">
+                        developed by 🐵
+                    </a>
+                </div>
             </div>
         </div>
     </footer>

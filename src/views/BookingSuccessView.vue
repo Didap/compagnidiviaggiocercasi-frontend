@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
 import { CheckCircle, ArrowRight, User } from 'lucide-vue-next'
 import confetti from 'canvas-confetti'
 
+const route = useRoute()
+
 onMounted(() => {
+    // Auto-login guest user if guest_jwt is present
+    const guestJwt = route.query.guest_jwt as string | undefined
+    if (guestJwt) {
+        localStorage.setItem('jwt', guestJwt)
+        console.log('[BookingSuccess] Guest auto-logged in via URL JWT')
+    }
+
     // Celebration effect
     const duration = 3 * 1000
     const end = Date.now() + duration

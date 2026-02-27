@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
+import { CreditCard, Plane, Users, Heart } from 'lucide-vue-next'
 </script>
 
 <template>
@@ -42,7 +42,7 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
                         inizia qui.
                     </h1>
                     <p class="text-xl md:text-2xl text-gray-600 font-medium max-w-2xl mx-auto leading-relaxed">
-                        Pochi passi separano il tuo divano da un'avventura indimenticabile con nuovi amici.
+                        Viaggi organizzati, semplici e chiari. Parti con sconosciuti. Torni con nuovi amici.
                     </p>
                 </div>
             </div>
@@ -61,14 +61,16 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
             <div class="container mx-auto max-w-6xl">
                 <div class="grid md:grid-cols-2 gap-16 items-center mb-24">
                     <div class="space-y-6 order-2 md:order-1">
-                        <h2 class="text-4xl md:text-5xl font-black text-primary leading-tight">Prenota il viaggio</h2>
+                        <h2 class="text-4xl md:text-5xl font-black text-primary leading-tight">📝 Prenotazione semplice
+                            e trasparente</h2>
                         <p class="text-lg text-gray-600 font-medium leading-relaxed">
-                            Scegli il tuo viaggio in base alle date di partenza, alle destinazioni e… prenota! Abbiamo
-                            itinerari per tutti i gusti, quindi sicuramente ne troverai uno che fa per te!
+                            Blocca il tuo posto con € 100, rimborsabili entro 15 giorni.
+                            Nessuna quota di iscrizione e nessun costo nascosto: il prezzo è chiaro fin da subito.
+                            Il viaggio verrà confermato al raggiungimento del numero minimo di partecipanti.
                         </p>
                         <div class="flex items-center gap-4 text-secondary font-bold">
-                            <Search class="w-6 h-6" />
-                            <span>Esplora le destinazioni</span>
+                            <CreditCard class="w-6 h-6" />
+                            <span>Zero costi nascosti</span>
                         </div>
                     </div>
                     <div class="relative order-1 md:order-2">
@@ -89,31 +91,36 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <h2 class="text-4xl md:text-5xl font-black text-secondary leading-tight">Conosci i tuoi compagni
+                        <h2 class="text-4xl md:text-5xl font-black text-secondary leading-tight">🛫 Libertà di viaggio
                         </h2>
                         <p class="text-lg text-gray-600 font-medium leading-relaxed">
-                            Entra a far parte della community per conoscere i tuoi futuri compagni di viaggio. Il
-                            Coordinatore creerà poi il gruppo WhatsApp 15 giorni prima della partenza!
+                            Il volo non è incluso, così puoi scegliere l'aeroporto e l'orario più comodi per te. Su
+                            richiesta possiamo supportarti nella prenotazione.
+                            Durante il tour organizziamo tutto con passione e professionalità, lasciandoti sempre del
+                            tempo libero per vivere il luogo anche in autonomia.
+                            Non utilizziamo la cassa comune: ognuno paga solo ciò che sceglie.
                         </p>
                         <div class="flex items-center gap-4 text-primary font-bold">
-                            <Users class="w-6 h-6" />
-                            <span>La community ti aspetta</span>
+                            <Plane class="w-6 h-6" />
+                            <span>Massima flessibilità</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="grid md:grid-cols-2 gap-16 items-center mb-24">
                     <div class="space-y-6 order-2 md:order-1">
-                        <h2 class="text-4xl md:text-5xl font-black text-primary leading-tight">Goditi il tuo viaggio
+                        <h2 class="text-4xl md:text-5xl font-black text-primary leading-tight">👥 Piccoli gruppi, grandi
+                            connessioni
                         </h2>
                         <p class="text-lg text-gray-600 font-medium leading-relaxed">
-                            Condividi esperienze incredibili con i tuoi compagni di viaggio, scopri la cultura locale e
-                            vivi ogni minuto al massimo. Piangerai un pochino quando sarà il momento di salutarsi, ma è
-                            tutto nella norma!
+                            Viaggiamo in gruppi di max 15–20 persone per garantire maggiore intimità e coesione.
+                            Le camere sono condivise (divise per sesso), ideali per fare nuove amicizie e risparmiare se
+                            viaggi da solo.
+                            Non abbiamo limiti di età: conta solo la voglia di partire.
                         </p>
                         <div class="flex items-center gap-4 text-secondary font-bold">
-                            <MapPin class="w-6 h-6" />
-                            <span>Vivi l'avventura</span>
+                            <Users class="w-6 h-6" />
+                            <span>Max 15–20 persone</span>
                         </div>
                     </div>
                     <div class="relative order-1 md:order-2">
@@ -134,15 +141,15 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
                         </div>
                     </div>
                     <div class="space-y-6">
-                        <h2 class="text-4xl md:text-5xl font-black text-secondary leading-tight">Ora fai parte della
-                            community</h2>
+                        <h2 class="text-4xl md:text-5xl font-black text-secondary leading-tight">🇮🇹 Accompagnatore
+                            dall'Italia</h2>
                         <p class="text-lg text-gray-600 font-medium leading-relaxed">
-                            A fine viaggio avrai un gruppo di nuovi amici – e che fai, non vuoi rivederli ogni tanto?
-                            Complimenti, ora fai parte ufficialmente della nostra grande famiglia di viaggiatori.
+                            Al raggiungimento del numero minimo, un accompagnatore di Compagni di Viaggio Cercasi
+                            partirà dall'Italia insieme al gruppo, per vivere l'esperienza passo dopo passo.
                         </p>
                         <div class="flex items-center gap-4 text-primary font-bold">
                             <Heart class="w-6 h-6" />
-                            <span>Amici per sempre</span>
+                            <span>Sempre al tuo fianco</span>
                         </div>
                     </div>
                 </div>
@@ -152,11 +159,14 @@ import { Search, MapPin, Users, Heart } from 'lucide-vue-next'
         <!-- FINAL CTA -->
         <section class="py-24 px-6 bg-bg-primary text-center">
             <div class="container mx-auto max-w-4xl">
-                <h2 class="text-4xl md:text-6xl font-black text-primary leading-tight mb-8">Sei pronto a partire?</h2>
-                <p class="text-xl text-gray-600 font-medium mb-12">Il tuo prossimo capitolo inizia con un click.</p>
-                <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
-                    Scegli la tua Destinazione
-                </Button>
+                <h2 class="text-4xl md:text-6xl font-black text-primary leading-tight mb-8">Parti con
+                    sconosciuti.<br />Torni con nuovi amici.</h2>
+                <p class="text-xl text-gray-600 font-medium mb-12">💛 Viaggi organizzati, semplici e chiari.</p>
+                <RouterLink to="/destinazioni">
+                    <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
+                        Scegli la tua Destinazione
+                    </Button>
+                </RouterLink>
             </div>
         </section>
     </main>

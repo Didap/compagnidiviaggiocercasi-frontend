@@ -11,6 +11,11 @@ interface User {
     birthday?: string
     avatar?: any
     role?: { id: number; name: string; type: string }
+    codiceFiscale?: string
+    address?: string
+    city?: string
+    zip?: string
+    province?: string
 }
 
 const user = ref<User | null>(null)

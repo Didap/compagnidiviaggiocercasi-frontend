@@ -19,7 +19,10 @@ import {
     Clock,
     Shield,
     Heart,
-    ArrowRight
+    ArrowRight,
+    Mail,
+    FileText,
+    Home
 } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
 
@@ -54,6 +57,14 @@ const requestInvoice = ref(false)
 const paymentOption = ref<'full' | 'deposit' | 'installments'>('deposit')
 const selectedSupplements = ref<Record<number, boolean>>({})
 
+// Guest checkout & profile fields
+const guestEmail = ref('')
+const codiceFiscale = ref('')
+const address = ref('')
+const city = ref('')
+const zip = ref('')
+const province = ref('')
+
 const fetchOffer = async () => {
     try {
         const offerId = route.params.offerId
@@ -75,12 +86,20 @@ const fetchOffer = async () => {
     }
 }
 
-// Pre-fill first traveler when user is loaded
+// Pre-fill first traveler and profile fields when user is loaded
 watch(user, (newUser) => {
     if (newUser && participants.value[0] && !participants.value[0].firstName && !participants.value[0].lastName) {
         participants.value[0].firstName = newUser.firstName || ''
         participants.value[0].lastName = newUser.lastName || ''
         participants.value[0].birthDate = newUser.birthday || ''
+    }
+    // Pre-fill profile fields
+    if (newUser) {
+        if (newUser.codiceFiscale && !codiceFiscale.value) codiceFiscale.value = newUser.codiceFiscale
+        if (newUser.address && !address.value) address.value = newUser.address
+        if (newUser.city && !city.value) city.value = newUser.city
+        if (newUser.zip && !zip.value) zip.value = newUser.zip
+        if (newUser.province && !province.value) province.value = newUser.province
     }
 }, { immediate: true })
 
@@ -203,33 +222,39 @@ const firstPaymentLabel = computed(() => {
 })
 
 const isFormValid = computed(() => {
-    return participants.value.every(p =>
+    const participantsValid = participants.value.every(p =>
         p.firstName.trim() !== '' &&
         p.lastName.trim() !== '' &&
         p.birthDate !== '' &&
         /^\d{4}-\d{2}-\d{2}$/.test(p.birthDate)
     )
+
+    // CF and address are always required
+    const profileValid = codiceFiscale.value.trim() !== '' &&
+        address.value.trim() !== '' &&
+        city.value.trim() !== '' &&
+        zip.value.trim() !== '' &&
+        province.value.trim() !== ''
+
+    // Email required only for guests
+    const emailValid = isAuthenticated.value || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail.value)
+
+    return participantsValid && profileValid && emailValid
 })
 
 const submitBooking = async () => {
     console.log('[Booking] Submitting booking...', {
         user: user.value?.id,
         offerId: route.params.offerId,
-        participants: participants.value.length
+        participants: participants.value.length,
+        isGuest: !isAuthenticated.value
     })
-
-    if (!isAuthenticated.value) {
-        console.warn('[Booking] User not authenticated, redirecting...')
-        router.push({ name: 'login', query: { redirect: route.fullPath } })
-        return
-    }
 
     submitting.value = true
     error.value = null
 
-
     try {
-        const payload = {
+        const payload: any = {
             data: {
                 bookingStatus: 'pending',
                 totalPrice: totalAmount.value,
@@ -242,20 +267,37 @@ const submitBooking = async () => {
                 selectedSupplements: Array.isArray(offer.value?.supplement)
                     ? offer.value.supplement.filter((_: any, i: number) => selectedSupplements.value[i]).map((s: any) => ({ name: s.name, price: Number(s.price) || 0 }))
                     : [],
-                user: user.value?.documentId || user.value?.id,
-                offer: route.params.offerId
+                offer: route.params.offerId,
+                // Profile / tax fields
+                codiceFiscale: codiceFiscale.value,
+                address: address.value,
+                city: city.value,
+                zip: zip.value,
+                province: province.value,
             }
         }
 
-        console.log('[Booking] Request Invoice value:', requestInvoice.value)
+        if (isAuthenticated.value) {
+            // Logged-in user: attach user ID
+            payload.data.user = user.value?.documentId || user.value?.id
+        } else {
+            // Guest checkout: attach email + name for auto account creation
+            payload.data.email = guestEmail.value
+            payload.data.firstName = participants.value[0]?.firstName || ''
+            payload.data.lastName = participants.value[0]?.lastName || ''
+        }
+
         console.log('[Booking] POST payload:', JSON.stringify(payload, null, 2))
+
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+        const jwt = localStorage.getItem('jwt')
+        if (jwt) {
+            headers['Authorization'] = `Bearer ${jwt}`
+        }
 
         const response = await fetch(`${apiUrl}/api/bookings`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('jwt')}`
-            },
+            headers,
             body: JSON.stringify(payload)
         })
 
@@ -267,6 +309,12 @@ const submitBooking = async () => {
 
         const data = await response.json()
         const checkoutUrl = data?.meta?.checkoutUrl
+
+        // If a guest JWT was returned, auto-login the user
+        if (data?.meta?.guestJwt) {
+            localStorage.setItem('jwt', data.meta.guestJwt)
+            console.log('[Booking] Guest auto-logged in with JWT')
+        }
 
         if (checkoutUrl) {
             console.log('[Booking] Redirecting to Stripe:', checkoutUrl)
@@ -281,10 +329,8 @@ const submitBooking = async () => {
         console.error('[Booking] Submit error:', err)
         error.value = err.message
     } finally {
-        // Only stop submitting if we are NOT redirecting
-        // if we are redirecting, we want the button to stay disabled/spinning until the page unloads
         if (!success.value && !error.value) {
-            // keeping creating...
+            // keeping spinner...
         } else {
             submitting.value = false
         }
@@ -438,6 +484,78 @@ onMounted(fetchOffer)
                                     'Limite posti raggiunto') }}
                             </button>
 
+                            <!-- Guest Email Section (only for non-logged-in users) -->
+                            <div v-if="!isAuthenticated"
+                                class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+                                    <Mail class="w-6 h-6 text-primary/60" />
+                                    Il tuo Account
+                                </h3>
+                                <p class="text-sm text-slate-500 mb-6">Inserisci la tua email per creare automaticamente
+                                    un account collegato alla prenotazione.</p>
+                                <div class="space-y-2">
+                                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Email
+                                        *</label>
+                                    <input v-model="guestEmail" type="email" placeholder="Es. mario.rossi@email.com"
+                                        class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                        required />
+                                </div>
+                            </div>
+
+                            <!-- Codice Fiscale & Address Section -->
+                            <div
+                                class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h3 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-3">
+                                    <FileText class="w-6 h-6 text-primary/60" />
+                                    Dati di Fatturazione
+                                </h3>
+                                <p class="text-sm text-slate-500 mb-6">Questi dati sono necessari per la prenotazione e
+                                    verranno salvati nel tuo profilo.</p>
+
+                                <div class="grid md:grid-cols-2 gap-6">
+                                    <div class="space-y-2 md:col-span-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Codice
+                                            Fiscale *</label>
+                                        <input v-model="codiceFiscale" type="text" placeholder="Es. RSSMRA85M01H501Z"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium uppercase"
+                                            maxlength="16" required />
+                                    </div>
+                                    <div class="space-y-2 md:col-span-2">
+                                        <label class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">
+                                            <Home class="w-3 h-3 inline -mt-0.5 mr-1" />Indirizzo di Residenza *
+                                        </label>
+                                        <input v-model="address" type="text" placeholder="Es. Via Roma 1"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            required />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Città
+                                            *</label>
+                                        <input v-model="city" type="text" placeholder="Es. Roma"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            required />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">Provincia
+                                            *</label>
+                                        <input v-model="province" type="text" placeholder="Es. RM" maxlength="2"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium uppercase"
+                                            required />
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label
+                                            class="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1">CAP
+                                            *</label>
+                                        <input v-model="zip" type="text" placeholder="Es. 00100" maxlength="5"
+                                            class="w-full h-12 bg-slate-50 border border-slate-100 rounded-xl px-4 focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            required />
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Supplements Section -->
                             <div v-if="offer?.supplement && offer.supplement.length > 0"
                                 class="bg-white rounded-[2rem] p-8 md:p-10 shadow-sm border border-slate-100">
@@ -445,7 +563,8 @@ onMounted(fetchOffer)
                                     <Plus class="w-6 h-6 text-primary/60" />
                                     Supplementi Disponibili
                                 </h3>
-                                <p class="text-sm text-slate-500 mb-6">Seleziona i supplementi che desideri aggiungere (il prezzo è per partecipante)</p>
+                                <p class="text-sm text-slate-500 mb-6">Seleziona i supplementi che desideri aggiungere
+                                    (il prezzo è per partecipante)</p>
 
                                 <div class="space-y-3">
                                     <label v-for="(supp, i) in (offer.supplement as any[])" :key="i"
@@ -470,7 +589,8 @@ onMounted(fetchOffer)
 
                                 <div v-if="supplementsTotal > 0"
                                     class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
-                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Totale supplementi</span>
+                                    <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Totale
+                                        supplementi</span>
                                     <span class="text-sm font-black text-primary">+{{ supplementsTotal }}€</span>
                                 </div>
                             </div>

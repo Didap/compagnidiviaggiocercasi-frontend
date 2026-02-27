@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Card from '@/components/ui/card/Card.vue'
@@ -26,7 +25,6 @@ import { getImageUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
-const { isAuthenticated } = useAuth()
 const trip = ref<any>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
@@ -198,10 +196,6 @@ const handleBooking = (offerId: number | string) => {
   console.log('[Booking] Initiating booking for offer:', offerId)
   if (!offerId) {
     console.error('[Booking] Missing offerId!')
-    return
-  }
-  if (!isAuthenticated.value) {
-    router.push({ name: 'login', query: { redirect: `/prenota/${offerId}` } })
     return
   }
   router.push(`/prenota/${offerId}`)

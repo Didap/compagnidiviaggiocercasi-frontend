@@ -149,12 +149,12 @@ import Button from '@/components/ui/button/Button.vue'
                             Scopri i Viaggi
                         </Button>
                     </RouterLink>
-                    <a href="mailto:info@compagnidiviaggiocercasi.it">
+                    <RouterLink to="/contatti">
                         <Button variant="outline" size="lg"
                             class="h-16 px-12 text-xl rounded-full border-2 border-secondary/30 text-secondary hover:bg-secondary hover:text-white transition-all">
                             Contattaci
                         </Button>
-                    </a>
+                    </RouterLink>
                 </div>
             </div>
         </section>
