@@ -75,6 +75,16 @@ const router = createRouter({
       component: () => import('../views/PrivacyView.vue'),
     },
     {
+      path: '/condizioni-generali-contratto',
+      name: 'contract-terms',
+      component: () => import('../views/ContractTermsView.vue'),
+    },
+    {
+      path: '/termini-e-condizioni',
+      name: 'terms-of-use',
+      component: () => import('../views/TermsView.vue'),
+    },
+    {
       path: '/cookie-policy',
       name: 'cookie-policy',
       component: () => import('../views/CookieView.vue'),

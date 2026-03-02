@@ -187,9 +187,8 @@ import Button from '@/components/ui/button/Button.vue'
                             </div>
                             <h4 class="text-xl font-black text-slate-900 mb-3">Travel Agent</h4>
                             <p class="text-slate-600 leading-relaxed text-sm">
-                                Figure commerciali e consulenziali, in grado di accompagnare il cliente nella scelta del
-                                viaggio più adatto, offrendo supporto, ascolto e competenza durante tutto il processo di
-                                prenotazione.
+                                Figure commerciali capaci di guidare il cliente nella scelta del viaggio più adatto,
+                                offrendo ascolto, supporto e competenza in ogni fase del processo di prenotazione.
                             </p>
                         </div>
                         <!-- Role 3 -->

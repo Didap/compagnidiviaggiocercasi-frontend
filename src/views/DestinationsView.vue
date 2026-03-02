@@ -11,7 +11,7 @@ import type { DateRange } from 'radix-vue'
 import { cn } from '@/lib/utils'
 import { useTrips } from '@/composables/useTrips'
 
-const { trips, loading, error, fetchTrips } = useTrips()
+const { trips, loading, error, fetchTrips, sortTripsBySoonestDeparture } = useTrips()
 
 // Filter State
 const searchQuery = ref('')
@@ -88,26 +88,8 @@ const filteredTrips = computed(() => {
 
         return true
     });
-
-    return filtered.sort((a: any, b: any) => {
-        const getEarliestDate = (trip: any) => {
-            const t = trip.attributes || trip;
-            const offersRaw = t.offers;
-            const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : []);
-
-            let earliest = Infinity;
-            offers.forEach((o: any) => {
-                const oData = o.attributes || o;
-                if (oData.startDate) {
-                    const time = new Date(oData.startDate).getTime();
-                    if (time < earliest) earliest = time;
-                }
-            });
-            return earliest;
-        };
-
-        return getEarliestDate(a) - getEarliestDate(b);
-    });
+    
+    return sortTripsBySoonestDeparture(filtered)
 })
 
 const calculatePriceBounds = () => {

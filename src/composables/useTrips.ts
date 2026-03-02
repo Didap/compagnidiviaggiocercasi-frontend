@@ -51,11 +51,34 @@ export function useTrips() {
         })
     }
 
+    const sortTripsBySoonestDeparture = (tripsToSort: Trip[]) => {
+        return [...tripsToSort].sort((a: any, b: any) => {
+            const getEarliestDate = (trip: any) => {
+                const t = trip.attributes || trip
+                const offersRaw = t.offers
+                const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
+
+                let earliest = Infinity
+                offers.forEach((o: any) => {
+                    const oData = o.attributes || o
+                    if (oData.startDate && (o.attributes?.attivo !== false && o.attivo !== false)) {
+                        const time = new Date(oData.startDate).getTime()
+                        if (time < earliest) earliest = time
+                    }
+                })
+                return earliest
+            }
+
+            return getEarliestDate(a) - getEarliestDate(b)
+        })
+    }
+
     return {
         trips,
         loading,
         error,
         fetchTrips,
-        getTripBySlug
+        getTripBySlug,
+        sortTripsBySoonestDeparture
     }
 }

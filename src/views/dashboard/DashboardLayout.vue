@@ -16,6 +16,7 @@ import {
     Ticket,
     ClipboardList,
     Mail,
+    FileText,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -28,6 +29,7 @@ const navItems = [
     { to: '/dashboard/prenotazioni', label: 'Prenotazioni', icon: Ticket },
     { to: '/dashboard/viaggi', label: 'Viaggi', icon: Map },
     { to: '/dashboard/offerte', label: 'Offerte', icon: Tag },
+    { to: '/dashboard/posts', label: 'Articoli', icon: FileText },
     { to: '/dashboard/recensioni', label: 'Recensioni', icon: Star },
     { to: '/dashboard/utenti', label: 'Utenti', icon: Users },
     { to: '/dashboard/proposte', label: 'Proposte', icon: ClipboardList },

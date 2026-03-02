@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, computed } from 'vue'
 import TripCard from '@/components/Trips/TripCard.vue'
 import { useTrips } from '@/composables/useTrips'
 
-const { trips, loading, error, fetchTrips } = useTrips()
+const { trips, loading, error, fetchTrips, sortTripsBySoonestDeparture } = useTrips()
+
+const sortedTrips = computed(() => sortTripsBySoonestDeparture(trips.value))
 
 onMounted(() => {
     fetchTrips()
@@ -29,7 +31,7 @@ onMounted(() => {
             </div>
 
             <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <TripCard v-for="trip in trips" :key="trip.id" :trip="trip" />
+                <TripCard v-for="trip in sortedTrips" :key="trip.id" :trip="trip" />
             </div>
         </div>
     </section>

@@ -97,7 +97,14 @@ const links = {
                 <div class="flex flex-wrap justify-center items-center gap-4 text-xs text-slate-500">
                     <span>&copy; {{ currentYear }} Tutti i diritti riservati</span>
                     <span class="hidden sm:inline text-slate-300">|</span>
+                    <RouterLink to="/condizioni-generali-contratto" class="hover:text-primary transition-colors">
+                        Condizioni Generali di Contratto
+                    </RouterLink>
+                    <span class="hidden sm:inline text-slate-300">|</span>
                     <RouterLink to="/privacy-policy" class="hover:text-primary transition-colors">Privacy Policy
+                    </RouterLink>
+                    <span class="hidden sm:inline text-slate-300">|</span>
+                    <RouterLink to="/termini-e-condizioni" class="hover:text-primary transition-colors">Condizioni d'uso
                     </RouterLink>
                     <span class="hidden sm:inline text-slate-300">|</span>
                     <RouterLink to="/cookie-policy" class="hover:text-primary transition-colors">Cookie Policy

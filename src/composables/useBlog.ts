@@ -43,15 +43,23 @@ export function useBlog() {
         }
     }
 
-    // Get single post by slug (public)
+    // Get single post by slug or documentId (public)
     const getPostBySlug = async (slug: string) => {
         isLoading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/api/posts?filters[slug][$eq]=${slug}&populate=*`)
+            let response = await fetch(`${API_URL}/api/posts?filters[slug][$eq]=${slug}&populate=*`)
             if (!response.ok) throw new Error('Failed to fetch post')
-            const data = await response.json()
-            if (!data.data || data.data.length === 0) return null
+            let data = await response.json()
+
+            if (!data.data || data.data.length === 0) {
+                // Try fallback to documentId
+                response = await fetch(`${API_URL}/api/posts?filters[documentId][$eq]=${slug}&populate=*`)
+                if (!response.ok) throw new Error('Failed to fetch post')
+                data = await response.json()
+                if (!data.data || data.data.length === 0) return null
+            }
+
             return data.data[0] as Post
         } catch (err: any) {
             error.value = err.message
@@ -130,6 +138,33 @@ export function useBlog() {
         }
     }
 
+    // Upload file (authenticated)
+    const uploadFile = async (file: File) => {
+        isLoading.value = true
+        error.value = null
+        try {
+            const formData = new FormData()
+            formData.append('files', file)
+
+            const response = await fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token.value}`
+                },
+                body: formData
+            })
+
+            if (!response.ok) throw new Error('Failed to upload file')
+            const data = await response.json()
+            return data[0] // Strapi returns an array of uploaded files
+        } catch (err: any) {
+            error.value = err.message
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         isLoading,
         error,
@@ -137,6 +172,7 @@ export function useBlog() {
         getPostBySlug,
         createPost,
         updatePost,
-        deletePost
+        deletePost,
+        uploadFile
     }
 }

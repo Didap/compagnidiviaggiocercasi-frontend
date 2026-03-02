@@ -93,7 +93,7 @@ const getCoverUrl = (post: Post) => {
         <!-- BLOG GRID -->
         <section class="py-24 px-6 bg-white shrink-0">
             <div class="container mx-auto max-w-6xl">
-                
+
                 <div v-if="isLoading" class="flex justify-center py-20">
                     <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
                 </div>
@@ -116,7 +116,9 @@ const getCoverUrl = (post: Post) => {
                         <div class="p-8 md:p-10 space-y-6">
                             <div
                                 class="flex items-center gap-4 text-xs font-bold uppercase tracking-widest text-secondary/60">
-                                <span v-if="post.category" class="bg-white px-3 py-1 rounded-full text-secondary shadow-sm">{{ post.category }}</span>
+                                <span v-if="post.category"
+                                    class="bg-white px-3 py-1 rounded-full text-secondary shadow-sm">{{ post.category
+                                    }}</span>
                                 <span>{{ formatDate(post.publishedAt) }}</span>
                             </div>
                             <h2
@@ -131,7 +133,7 @@ const getCoverUrl = (post: Post) => {
                                     <User class="w-4 h-4" />
                                     <span>{{ post.author?.username || 'Redazione' }}</span>
                                 </div>
-                                <button @click="router.push(`/blog/${post.slug}`)"
+                                <button @click="router.push(`/blog/${post.slug || post.documentId}`)"
                                     class="flex items-center gap-2 text-primary font-black uppercase text-xs tracking-widest group-hover:gap-4 transition-all">
                                     Leggi tutto
                                     <ArrowRight class="w-4 h-4" />
@@ -152,7 +154,8 @@ const getCoverUrl = (post: Post) => {
                 <div class="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto">
                     <input v-model="email" type="email" placeholder="La tua email"
                         class="flex-1 px-8 py-4 rounded-full bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-primary h-16 transition-all" />
-                    <Button @click="handleSubscribe" :disabled="isNewsletterLoading" size="lg" class="h-16 px-10 rounded-full bg-primary text-white font-black min-w-[140px]">
+                    <Button @click="handleSubscribe" :disabled="isNewsletterLoading" size="lg"
+                        class="h-16 px-10 rounded-full bg-primary text-white font-black min-w-[140px]">
                         <span v-if="isNewsletterLoading" class="animate-spin mr-2">⏳</span>
                         {{ isNewsletterLoading ? '...' : 'Iscriviti' }}
                     </Button>

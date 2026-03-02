@@ -96,6 +96,13 @@ const dateRange = computed(() => {
   const formatDate = (d: string) => new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' })
   return `${formatDate(start)} - ${formatDate(end)} ${new Date(end).getFullYear()}`
 })
+
+const totalPrice = computed(() => {
+  if (!offerData.value) return 0
+  const price = Number(offerData.value.price) || 0
+  const deposit = Number(offerData.value.depositPrice) || 0
+  return price + deposit
+})
 </script>
 
 <template>
@@ -142,11 +149,11 @@ const dateRange = computed(() => {
 
         <!-- Price Floating Pill -->
         <div v-if="offerData"
-          class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg transform translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 border border-white/20">
+          class="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg transition-all duration-500 border border-white/20">
           <div class="flex flex-col leading-tight">
             <span class="text-[10px] text-muted-foreground uppercase font-bold">{{ offers.length > 1 ? 'A partire da' :
               'Costo totale' }}</span>
-            <span class="text-base font-black text-primary">{{ offerData.price }}€</span>
+            <span class="text-base font-black text-primary">{{ totalPrice }}€</span>
           </div>
         </div>
       </div>
