@@ -35,12 +35,16 @@ const submitForm = async () => {
     errorMessage.value = ''
 
     try {
+        const motivoLabel = motivoOptions.find(o => o.value === form.value.motivo)?.label || form.value.motivo
+        const subjectWithMotivo = form.value.subject
+            ? `[${motivoLabel}] ${form.value.subject}`
+            : `[${motivoLabel}]`
+
         const payload = {
             data: {
                 name: form.value.name,
                 email: form.value.email,
-                motivo: form.value.motivo,
-                subject: form.value.subject,
+                subject: subjectWithMotivo,
                 message: form.value.message
             }
         }
