@@ -11,8 +11,8 @@ const props = withDefaults(defineProps<{
 
 const motivoOptions = [
     { value: 'gift-card', label: 'Gift Card' },
-    { value: 'proposta-viaggio', label: 'Proposta di viaggio' },
-    { value: 'generico', label: 'Contatto generico' },
+    { value: 'candidatura-lavoro', label: 'Candidatura di lavoro' },
+    { value: 'generico', label: 'Info generiche' },
 ]
 
 const form = ref({
