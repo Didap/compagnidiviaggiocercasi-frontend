@@ -2,6 +2,10 @@
 import Navbar from '@/components/Navbar.vue'
 import ContactForm from '@/components/ContactForm.vue'
 import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+const initialMotivo = (route.query.motivo as string) || ''
 </script>
 
 <template>
@@ -77,8 +81,7 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
                                 </div>
                                 <div>
                                     <h4 class="text-lg font-bold text-slate-800 mb-1">Email</h4>
-                                    <a href="mailto:info@compagnidiviaggiocercasi.it"
-                                        class="text-slate-500 font-medium hover:text-primary transition-colors hover:underline">info@compagnidiviaggiocercasi.it</a>
+                                    <span class="text-slate-500 font-medium">info@compagnidiviaggiocercasi.it</span>
                                 </div>
                             </div>
 
@@ -130,7 +133,7 @@ import { MapPin, Mail, Phone, Instagram, Facebook } from 'lucide-vue-next'
 
                     <!-- Form Container -->
                     <div class="relative">
-                        <ContactForm />
+                        <ContactForm :initial-motivo="initialMotivo" />
                     </div>
 
                 </div>

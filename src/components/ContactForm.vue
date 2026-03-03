@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import Button from '@/components/ui/button/Button.vue'
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-vue-next'
+import { CheckCircle, AlertCircle, Loader2, ChevronDown } from 'lucide-vue-next'
+
+const props = withDefaults(defineProps<{
+    initialMotivo?: string
+}>(), {
+    initialMotivo: ''
+})
+
+const motivoOptions = [
+    { value: 'gift-card', label: 'Gift Card' },
+    { value: 'proposta-viaggio', label: 'Proposta di viaggio' },
+    { value: 'generico', label: 'Contatto generico' },
+]
 
 const form = ref({
     name: '',
     email: '',
+    motivo: props.initialMotivo,
     subject: '',
     message: ''
 })
@@ -26,6 +39,7 @@ const submitForm = async () => {
             data: {
                 name: form.value.name,
                 email: form.value.email,
+                motivo: form.value.motivo,
                 subject: form.value.subject,
                 message: form.value.message
             }
@@ -47,7 +61,7 @@ const submitForm = async () => {
 
         status.value = 'success'
         // Reset form
-        form.value = { name: '', email: '', subject: '', message: '' }
+        form.value = { name: '', email: '', motivo: '', subject: '', message: '' }
     } catch (err: any) {
         status.value = 'error'
         errorMessage.value = err.message || 'Errore di connessione. Riprova più tardi.'
@@ -102,6 +116,18 @@ const submitForm = async () => {
                         <label for="email" class="block text-sm font-bold text-slate-700 group-focus-within:text-primary transition-colors">Email <span class="text-red-500">*</span></label>
                         <input type="email" id="email" v-model="form.email" required placeholder="Es. mario@email.com"
                             class="w-full h-12 px-4 rounded-xl bg-slate-50 border-0 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary focus:bg-white transition-all text-slate-900 placeholder:text-slate-400 font-medium" />
+                    </div>
+                </div>
+
+                <div class="space-y-2 relative group">
+                    <label for="motivo" class="block text-sm font-bold text-slate-700 group-focus-within:text-primary transition-colors">Motivo del contatto <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <select id="motivo" v-model="form.motivo" required
+                            class="w-full h-12 px-4 pr-10 rounded-xl bg-slate-50 border-0 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-primary focus:bg-white transition-all text-slate-900 font-medium appearance-none">
+                            <option value="" disabled>Seleziona un motivo...</option>
+                            <option v-for="opt in motivoOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                        </select>
+                        <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                     </div>
                 </div>
 

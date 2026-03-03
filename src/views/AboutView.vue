@@ -238,10 +238,10 @@ import Button from '@/components/ui/button/Button.vue'
                                 </p>
                             </div>
                             <div class="pt-4 flex justify-center md:justify-start">
-                                <a href="mailto:info@compagnidiviaggiocercasi.com?subject=Spettabile%20Team%20-%20Candidatura%20Lavora%20con%20Noi&body=Ciao%2C%0A%0ATi%20scrivo%20per%20sottoporre%20la%20mia%20candidatura%20per%20una%20posizione%20nel%20team.%0A%0A%5BInserisci%20qui%20la%20tua%20breve%20presentazione%5D%0A%0AIn%20allegato%20troverai%20il%20mio%20CV.%0A%0AGrazie%20e%20a%20presto!"
+                                <RouterLink to="/contatti?motivo=generico"
                                     class="inline-flex h-14 items-center justify-center rounded-2xl bg-primary px-8 text-base font-bold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary/90 hover:scale-105 hover:-translate-y-1">
-                                    Invia Candidatura (Mail)
-                                </a>
+                                    Invia Candidatura
+                                </RouterLink>
                             </div>
                         </div>
                     </div>

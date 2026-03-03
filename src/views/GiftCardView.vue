@@ -134,11 +134,11 @@ import { RouterLink } from 'vue-router'
                             emozioni!
                         </p>
                         <div class="pt-4">
-                            <a href="mailto:info@compagnidiviaggiocercasi.it">
+                            <RouterLink to="/contatti?motivo=gift-card">
                                 <Button size="lg" class="h-16 px-12 text-xl rounded-full shadow-2xl">
                                     Richiedi la tua Gift Card
                                 </Button>
-                            </a>
+                            </RouterLink>
                         </div>
                     </div>
                 </div>

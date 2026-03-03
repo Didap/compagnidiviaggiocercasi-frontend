@@ -51,10 +51,10 @@ const updateStatus = async (proposalId: number, status: string) => {
         // Update local state
         const index = proposals.value.findIndex(p => p.id === proposalId)
         if (index !== -1) {
-            proposals.value[index].attributes.status = status
+            proposals.value[index].status = status
             // Update selected proposal if open
             if (selectedProposal.value?.id === proposalId) {
-                selectedProposal.value.attributes.status = status
+                selectedProposal.value.status = status
             }
         }
 
@@ -86,31 +86,31 @@ const formatDate = (dateString: string) => {
 }
 
 const getCoordinationText = (proposal: any) => {
-    return proposal.attributes.wantsToCoordinate
+    return proposal.wantsToCoordinate
         ? 'Disponibile a coordinare il viaggio'
         : 'Partecipante semplice'
 }
 
 const getUsername = (proposal: any) => {
-    return proposal.attributes.user?.data?.attributes?.username || 'Utente sconosciuto'
+    return proposal.user?.username || 'Utente sconosciuto'
 }
 
 const getUserInitial = (proposal: any) => {
-    return proposal.attributes.user?.data?.attributes?.username?.charAt(0).toUpperCase() || 'U'
+    return proposal.user?.username?.charAt(0).toUpperCase() || 'U'
 }
 
 const filteredProposals = computed(() => {
     let result = proposals.value
 
     if (filterStatus.value !== 'all') {
-        result = result.filter(p => p.attributes.status === filterStatus.value)
+        result = result.filter(p => p.status === filterStatus.value)
     }
 
     if (searchQuery.value) {
         const q = searchQuery.value.toLowerCase()
         result = result.filter(p =>
-            p.attributes.destination.toLowerCase().includes(q) ||
-            p.attributes.user?.data?.attributes?.username.toLowerCase().includes(q)
+            p.destination?.toLowerCase().includes(q) ||
+            p.user?.username?.toLowerCase().includes(q)
         )
     }
 
@@ -172,30 +172,30 @@ onMounted(fetchProposals)
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-3 mb-2">
-                                <h3 class="font-bold text-lg text-slate-800 truncate">{{ proposal.attributes.destination
+                                <h3 class="font-bold text-lg text-slate-800 truncate">{{ proposal.destination
                                 }}</h3>
                                 <Badge
-                                    :class="[getStatusBadge(proposal.attributes.status).class, 'border-none font-bold text-[10px] uppercase']">
-                                    {{ getStatusBadge(proposal.attributes.status).label }}
+                                    :class="[getStatusBadge(proposal.status).class, 'border-none font-bold text-[10px] uppercase']">
+                                    {{ getStatusBadge(proposal.status).label }}
                                 </Badge>
                             </div>
                             <div class="flex items-center gap-4 text-sm text-slate-500 mb-3">
                                 <span class="flex items-center gap-1.5">
                                     <Clock class="w-3.5 h-3.5" />
-                                    {{ proposal.attributes.preferredPeriod || 'Periodo flessibile' }}
+                                    {{ proposal.preferredPeriod || 'Periodo flessibile' }}
                                 </span>
-                                <span v-if="proposal.attributes.budget">
-                                    Budget: €{{ proposal.attributes.budget }}
+                                <span v-if="proposal.budget">
+                                    Budget: €{{ proposal.budget }}
                                 </span>
                             </div>
-                            <p class="text-sm text-slate-600 line-clamp-2">{{ proposal.attributes.description }}</p>
+                            <p class="text-sm text-slate-600 line-clamp-2">{{ proposal.description }}</p>
 
                             <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
                                 <span class="font-bold text-slate-600">{{
                                     getUsername(proposal)
                                     }}</span>
                                 <span>•</span>
-                                <span>{{ formatDate(proposal.attributes.createdAt) }}</span>
+                                <span>{{ formatDate(proposal.createdAt) }}</span>
                             </div>
                         </div>
                         <div class="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -237,24 +237,24 @@ onMounted(fetchProposals)
                         <!-- Status Bar -->
                         <div class="bg-slate-50 p-4 rounded-xl flex items-center justify-between">
                             <Badge
-                                :class="[getStatusBadge(selectedProposal.attributes.status).class, 'border-none font-bold']">
-                                {{ getStatusBadge(selectedProposal.attributes.status).label }}
+                                :class="[getStatusBadge(selectedProposal.status).class, 'border-none font-bold']">
+                                {{ getStatusBadge(selectedProposal.status).label }}
                             </Badge>
 
                             <div class="flex items-center gap-2">
-                                <button v-if="selectedProposal.attributes.status === 'pending'"
+                                <button v-if="selectedProposal.status === 'pending'"
                                     @click="updateStatus(selectedProposal.id, 'reviewed')"
                                     :disabled="updating === selectedProposal.id"
                                     class="px-3 py-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg text-xs font-bold transition-colors">
                                     Segna come letto
                                 </button>
-                                <button v-if="selectedProposal.attributes.status !== 'accepted'"
+                                <button v-if="selectedProposal.status !== 'accepted'"
                                     @click="updateStatus(selectedProposal.id, 'accepted')"
                                     :disabled="updating === selectedProposal.id"
                                     class="px-3 py-1.5 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
                                     <Check class="w-3.5 h-3.5" /> Accetta
                                 </button>
-                                <button v-if="selectedProposal.attributes.status !== 'rejected'"
+                                <button v-if="selectedProposal.status !== 'rejected'"
                                     @click="updateStatus(selectedProposal.id, 'rejected')"
                                     :disabled="updating === selectedProposal.id"
                                     class="px-3 py-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg text-xs font-bold transition-colors flex items-center gap-1">
@@ -267,7 +267,7 @@ onMounted(fetchProposals)
                         <div class="space-y-4">
                             <div>
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-1">Destinazione</h3>
-                                <p class="text-xl font-bold text-slate-900">{{ selectedProposal.attributes.destination
+                                <p class="text-xl font-bold text-slate-900">{{ selectedProposal.destination
                                 }}</p>
                             </div>
 
@@ -276,13 +276,13 @@ onMounted(fetchProposals)
                                     <div>
                                         <p class="text-xs font-bold text-slate-400 uppercase mb-1">Periodo Preferito</p>
                                         <p class="font-medium text-slate-800">{{
-                                            selectedProposal.attributes.preferredPeriod || 'Non specificato' }}</p>
+                                            selectedProposal.preferredPeriod || 'Non specificato' }}</p>
                                     </div>
                                     <div>
                                         <p class="text-xs font-bold text-slate-400 uppercase mb-1">Budget Stimato</p>
                                         <p class="font-medium text-slate-800">
-                                            {{ selectedProposal.attributes.budget ?
-                                                `€${selectedProposal.attributes.budget}` : 'Non specificato' }}
+                                            {{ selectedProposal.budget ?
+                                                `€${selectedProposal.budget}` : 'Non specificato' }}
                                         </p>
                                     </div>
                                 </div>
@@ -298,7 +298,7 @@ onMounted(fetchProposals)
                                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-2">Descrizione idea</h3>
                                 <div
                                     class="p-4 border border-slate-100 rounded-xl bg-white text-slate-600 leading-relaxed text-sm">
-                                    {{ selectedProposal.attributes.description }}
+                                    {{ selectedProposal.description }}
                                 </div>
                             </div>
 
@@ -306,11 +306,11 @@ onMounted(fetchProposals)
                             <div class="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
                                 <div>
                                     <p class="text-xs font-bold text-slate-400 uppercase mb-0.5">Inviata il</p>
-                                    <p class="text-sm font-bold text-slate-800">{{ formatDate(selectedProposal.attributes.createdAt) }}</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ formatDate(selectedProposal.createdAt) }}</p>
                                 </div>
-                                <div v-if="selectedProposal.attributes.numberOfInterested">
+                                <div v-if="selectedProposal.numberOfInterested">
                                     <p class="text-xs font-bold text-slate-400 uppercase mb-0.5">Interessati</p>
-                                    <p class="text-sm font-black text-primary text-right">{{ selectedProposal.attributes.numberOfInterested }}</p>
+                                    <p class="text-sm font-black text-primary text-right">{{ selectedProposal.numberOfInterested }}</p>
                                 </div>
                             </div>
 
@@ -325,7 +325,7 @@ onMounted(fetchProposals)
                                         {{ getUsername(selectedProposal) }}
                                     </p>
                                     <p class="text-xs text-slate-400">
-                                        {{ selectedProposal.attributes.user?.data?.attributes?.email }}
+                                        {{ selectedProposal.user?.email }}
                                     </p>
                                 </div>
                             </div>

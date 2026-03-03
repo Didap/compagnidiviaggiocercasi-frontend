@@ -132,7 +132,7 @@ const openDetails = async (offer: any) => {
     try {
         const docId = offer.documentId || offer.id
         // Fetch confirmed bookings for this offer to show participants
-        const res = await fetch(`${apiUrl}/api/bookings?filters[offer][documentId]=${docId}&filters[status]=confirmed&populate[user][fields]=username,firstName,lastName,email&populate[participants]=*`, {
+        const res = await fetch(`${apiUrl}/api/bookings?filters[offer][documentId]=${docId}&filters[status][$eq]=confirmed&populate[user][fields]=username,firstName,lastName,email&populate[participants]=*`, {
             headers: { Authorization: `Bearer ${token.value}` }
         })
         const data = await res.json()

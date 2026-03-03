@@ -58,7 +58,7 @@ const fetchStats = async () => {
         ])
 
         // Fetch all confirmed bookings for revenue & chart
-        const allBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status]=confirmed&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000&sort=createdAt:asc`, { headers })
+        const allBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=confirmed&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000&sort=createdAt:asc`, { headers })
         const allBookings = await allBookingsRes.json()
 
         // Calculate Total Revenue
@@ -82,7 +82,7 @@ const fetchStats = async () => {
         revenueHistory.value = Array.from(historyMap.entries()).map(([date, amount]) => ({ date, amount }))
 
         // Pending revenue
-        const pendingBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status]=pending&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000`, { headers })
+        const pendingBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=pending&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000`, { headers })
         const pendingBookings = await pendingBookingsRes.json()
         const pendingRevenue = (pendingBookings.data || []).reduce((sum: number, b: any) => {
             const price = b.offer?.depositPrice || 0
@@ -91,7 +91,7 @@ const fetchStats = async () => {
         }, 0)
 
         // Cancelled bookings count
-        const cancelledBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status]=cancelled&pagination[pageSize]=1`, { headers })
+        const cancelledBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=cancelled&pagination[pageSize]=1`, { headers })
         const cancelledBookingsData = await cancelledBookingsRes.json()
         const cancelledCount = cancelledBookingsData.meta?.pagination?.total || 0
 
