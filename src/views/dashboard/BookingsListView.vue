@@ -89,9 +89,8 @@ const getUserName = (b: any) => {
 }
 const getUserEmail = (b: any) => b.user?.email || '—'
 const getAmount = (b: any) => {
-    const price = b.offer?.depositPrice || 0
-    const count = (b.participants && b.participants.length > 0) ? b.participants.length : 1
-    return price * count
+    // Use stored totalPrice (the full booking value)
+    return Number(b.totalPrice) || 0
 }
 
 const formatDate = (d: string) => {

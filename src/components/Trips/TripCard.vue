@@ -99,9 +99,8 @@ const dateRange = computed(() => {
 
 const totalPrice = computed(() => {
   if (!offerData.value) return 0
-  const price = Number(offerData.value.price) || 0
-  const deposit = Number(offerData.value.depositPrice) || 0
-  return price + deposit
+  // price is now the TOTAL price (deposit is already included)
+  return Number(offerData.value.price) || 0
 })
 </script>
 

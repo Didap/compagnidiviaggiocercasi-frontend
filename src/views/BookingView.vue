@@ -164,7 +164,8 @@ const supplementsTotal = computed(() => {
     }, 0) * participants.value.length
 })
 
-const totalAmount = computed(() => ((offer.value?.price || 0) + (offer.value?.depositPrice || 0)) * participants.value.length + supplementsTotal.value)
+// price is now the TOTAL price (deposit is already included)
+const totalAmount = computed(() => (offer.value?.price || 0) * participants.value.length + supplementsTotal.value)
 const totalDeposit = computed(() => (offer.value?.depositPrice || 0) * participants.value.length)
 
 const installmentsAvailable = computed(() => {
@@ -193,8 +194,8 @@ const installmentsCount = computed(() => {
     if (Array.isArray(configs) && configs.length > 0) return configs.length
     return offer.value?.installmentsCount || 3
 })
-// Installments apply only to the price (excluding deposit)
-const totalPriceOnly = computed(() => (offer.value?.price || 0) * participants.value.length + supplementsTotal.value)
+// Balance for installments: total price minus deposit
+const totalPriceOnly = computed(() => ((offer.value?.price || 0) - (offer.value?.depositPrice || 0)) * participants.value.length + supplementsTotal.value)
 
 const installmentAmount = computed(() => {
     if (!installmentsAvailable.value) return 0

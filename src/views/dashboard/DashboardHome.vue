@@ -50,7 +50,7 @@ const fetchStats = async () => {
             fetch(`${apiUrl}/api/offers?pagination[pageSize]=1`, { headers }),
             fetch(`${apiUrl}/api/reviews?pagination[pageSize]=1`, { headers }),
             fetch(`${apiUrl}/api/users?pagination[pageSize]=1`, { headers }),
-            fetch(`${apiUrl}/api/bookings?populate[offer][fields][0]=depositPrice&populate[offer][populate][0]=trip&populate[user][fields][0]=username&populate[user][fields][1]=firstName&populate[user][fields][2]=lastName&populate[participants]=*&sort=createdAt:desc&pagination[limit]=5`, { headers }),
+            fetch(`${apiUrl}/api/bookings?populate[offer][populate][0]=trip&populate[user][fields][0]=username&populate[user][fields][1]=firstName&populate[user][fields][2]=lastName&populate[participants]=*&sort=createdAt:desc&pagination[limit]=5`, { headers }),
         ])
 
         const [tripsData, offersData, reviewsData, usersData, bookingsData] = await Promise.all([
@@ -58,23 +58,19 @@ const fetchStats = async () => {
         ])
 
         // Fetch all confirmed bookings for revenue & chart
-        const allBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=confirmed&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000&sort=createdAt:asc`, { headers })
+        const allBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=confirmed&populate[participants]=*&pagination[pageSize]=1000&sort=createdAt:asc`, { headers })
         const allBookings = await allBookingsRes.json()
 
-        // Calculate Total Revenue
+        // Calculate Total Revenue (using stored totalPrice)
         const revenue = (allBookings.data || []).reduce((sum: number, b: any) => {
-            const price = b.offer?.depositPrice || 0
-            const count = (b.participants && b.participants.length > 0) ? b.participants.length : 1
-            return sum + (price * count)
+            return sum + (Number(b.totalPrice) || 0)
         }, 0)
 
         // Calculate Revenue History (Group by Date)
         const historyMap = new Map<string, number>()
             ; (allBookings.data || []).forEach((b: any) => {
                 const date = new Date(b.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
-                const price = b.offer?.depositPrice || 0
-                const count = (b.participants && b.participants.length > 0) ? b.participants.length : 1
-                const amount = price * count
+                const amount = Number(b.totalPrice) || 0
                 historyMap.set(date, (historyMap.get(date) || 0) + amount)
             })
 
@@ -82,12 +78,10 @@ const fetchStats = async () => {
         revenueHistory.value = Array.from(historyMap.entries()).map(([date, amount]) => ({ date, amount }))
 
         // Pending revenue
-        const pendingBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=pending&populate[offer][fields][0]=depositPrice&populate[participants]=*&pagination[pageSize]=1000`, { headers })
+        const pendingBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=pending&populate[participants]=*&pagination[pageSize]=1000`, { headers })
         const pendingBookings = await pendingBookingsRes.json()
         const pendingRevenue = (pendingBookings.data || []).reduce((sum: number, b: any) => {
-            const price = b.offer?.depositPrice || 0
-            const count = (b.participants && b.participants.length > 0) ? b.participants.length : 1
-            return sum + (price * count)
+            return sum + (Number(b.totalPrice) || 0)
         }, 0)
 
         // Cancelled bookings count
@@ -249,9 +243,8 @@ const getUserName = (b: any) => {
 }
 
 const getAmount = (b: any) => {
-    const price = b.offer?.depositPrice || 0
-    const count = (b.participants && b.participants.length > 0) ? b.participants.length : 1
-    return price * count
+    // Use stored totalPrice (the full booking value)
+    return Number(b.totalPrice) || 0
 }
 
 const formatDate = (d: string) => {

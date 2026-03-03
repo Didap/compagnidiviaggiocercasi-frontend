@@ -29,6 +29,7 @@ export function useTrips() {
                 'populate[reviews][populate]': '*',
                 'populate[offers][populate]': '*',
                 'populate[offers][filters][attivo][$eq]': 'true',
+                'filters[attivo][$eq]': 'true',
                 ...params
             }
 

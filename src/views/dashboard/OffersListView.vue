@@ -166,14 +166,15 @@ const fetchData = async () => {
     }
 }
 
-// Installment Helpers
+// Installment base = price - depositPrice (balance after deposit)
 const getPrice = () => parseFloat(form.value.price) || 0
+const getInstallmentBase = () => Math.max(0, getPrice() - (parseFloat(form.value.depositPrice) || 0))
 
 const recalcAmounts = () => {
-    const price = getPrice()
+    const base = getInstallmentBase()
     const configs = form.value.installmentConfigs
     const count = configs.length
-    if (count === 0 || price === 0) return
+    if (count === 0 || base === 0) return
 
     // Check if installments already have custom amounts
     const currentSum = configs.reduce((s, c) => s + (c.amount || 0), 0)
@@ -184,20 +185,20 @@ const recalcAmounts = () => {
         configs.forEach((c, i) => {
             const isLast = i === count - 1
             c.amount = isLast
-                ? Math.round((price - usedSum) * 100) / 100
-                : Math.round((c.amount / currentSum * price) * 100) / 100
+                ? Math.round((base - usedSum) * 100) / 100
+                : Math.round((c.amount / currentSum * base) * 100) / 100
             usedSum += c.amount
-            c.percentage = Math.round((c.amount / price) * 1000) / 10
+            c.percentage = base > 0 ? Math.round((c.amount / base) * 1000) / 10 : 0
         })
     } else {
         // Even split (first time enabling installments)
-        const evenAmount = Math.floor((price / count) * 100) / 100
+        const evenAmount = Math.floor((base / count) * 100) / 100
         let usedSum = 0
         configs.forEach((c, i) => {
             const isLast = i === count - 1
-            c.amount = isLast ? Math.round((price - usedSum) * 100) / 100 : evenAmount
+            c.amount = isLast ? Math.round((base - usedSum) * 100) / 100 : evenAmount
             usedSum += c.amount
-            c.percentage = Math.round((c.amount / price) * 1000) / 10
+            c.percentage = base > 0 ? Math.round((c.amount / base) * 1000) / 10 : 0
         })
     }
 }
@@ -258,17 +259,17 @@ const removeInstallment = (index: number) => {
 
 const handleAmountUpdate = (changedIndex: number, newAmount: number) => {
     const configs = form.value.installmentConfigs
-    const price = getPrice()
-    if (configs.length <= 1 || price === 0) return
+    const base = getInstallmentBase()
+    if (configs.length <= 1 || base === 0) return
 
     const cfg = configs[changedIndex]
     if (!cfg) return
 
-    // Clamp to [0, price]
-    cfg.amount = Math.max(0, Math.min(newAmount, price))
+    // Clamp to [0, base]
+    cfg.amount = Math.max(0, Math.min(newAmount, base))
 
     // Distribute the remaining balance among the other installments
-    const remaining = price - cfg.amount
+    const remaining = base - cfg.amount
     const otherIndices: number[] = []
     for (let i = 0; i < configs.length; i++) { if (i !== changedIndex) otherIndices.push(i) }
     const otherSum = otherIndices.reduce((s, i) => s + (configs[i]?.amount ?? 0), 0)
@@ -300,7 +301,7 @@ const handleAmountUpdate = (changedIndex: number, newAmount: number) => {
 
     // Recalculate percentages from amounts
     configs.forEach(c => {
-        c.percentage = Math.round((c.amount / price) * 1000) / 10
+        c.percentage = base > 0 ? Math.round((c.amount / base) * 1000) / 10 : 0
     })
 }
 
@@ -800,7 +801,7 @@ onMounted(fetchData)
                                                                 cfg.percentage.toFixed(1) }}%</span>
                                                         </div>
                                                         <Input type="number" :model-value="cfg.amount" :min="0"
-                                                            :max="parseFloat(form.price) || 0" :step="1"
+                                                            :max="Math.max(0, (parseFloat(form.price) || 0) - (parseFloat(form.depositPrice) || 0))" :step="1"
                                                             @update:model-value="(v: string | number) => handleAmountUpdate(i, Number(v))"
                                                             class="h-9 text-sm font-bold text-primary" />
                                                     </div>
@@ -870,19 +871,19 @@ onMounted(fetchData)
                                                 </div>
                                             </div>
 
-                                            <!-- Total amount bar -->
+                                            <!-- Total amount bar (compared against installment base = price - deposit) -->
                                             <div class="flex items-center gap-2 px-1">
                                                 <div class="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
                                                     <div class="h-full rounded-full transition-all duration-300"
-                                                        :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - (parseFloat(form.price) || 0)) < 0.01 ? 'bg-green-500' : 'bg-orange-400'"
-                                                        :style="{ width: Math.min((form.installmentConfigs.reduce((s, c) => s + c.amount, 0) / (parseFloat(form.price) || 1)) * 100, 100) + '%' }">
+                                                        :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - Math.max(0, (parseFloat(form.price) || 0) - (parseFloat(form.depositPrice) || 0))) < 0.01 ? 'bg-green-500' : 'bg-orange-400'"
+                                                        :style="{ width: Math.min((form.installmentConfigs.reduce((s, c) => s + c.amount, 0) / (Math.max(1, (parseFloat(form.price) || 0) - (parseFloat(form.depositPrice) || 0)))) * 100, 100) + '%' }">
                                                     </div>
                                                 </div>
                                                 <span class="text-[10px] font-bold"
-                                                    :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - (parseFloat(form.price) || 0)) < 0.01 ? 'text-green-600' : 'text-orange-500'">
+                                                    :class="Math.abs(form.installmentConfigs.reduce((s, c) => s + c.amount, 0) - Math.max(0, (parseFloat(form.price) || 0) - (parseFloat(form.depositPrice) || 0))) < 0.01 ? 'text-green-600' : 'text-orange-500'">
                                                     €{{form.installmentConfigs.reduce((s, c) => s + c.amount,
                                                         0).toFixed(2)}}
-                                                    / €{{ parseFloat(form.price) || 0 }}
+                                                    / €{{ Math.max(0, (parseFloat(form.price) || 0) - (parseFloat(form.depositPrice) || 0)) }}
                                                 </span>
                                             </div>
 
@@ -1070,7 +1071,7 @@ onMounted(fetchData)
                                 </div>
                             </td>
                             <td class="py-4 px-4 text-right">
-                                <span class="font-bold text-slate-800">€{{ offer.price + offer.depositPrice }}</span>
+                                <span class="font-bold text-slate-800">€{{ offer.price }}</span>
                             </td>
                             <td class="py-4 px-4 text-center hidden sm:table-cell">
                                 <Badge

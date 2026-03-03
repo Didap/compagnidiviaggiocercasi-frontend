@@ -42,7 +42,13 @@ const fetchTrip = async () => {
     if (!response.ok) throw new Error(`Errore HTTP: ${response.status}`)
     const data = await response.json()
     if (data.data && data.data.length > 0) {
-      trip.value = data.data[0]?.attributes || data.data[0]
+      const tripData = data.data[0]?.attributes || data.data[0]
+      // Guard: don't show inactive trips on public pages
+      if (tripData.attivo === false) {
+        error.value = 'Viaggio non disponibile'
+      } else {
+        trip.value = tripData
+      }
     } else {
       error.value = 'Viaggio non trovato'
     }

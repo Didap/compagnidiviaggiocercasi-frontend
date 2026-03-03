@@ -6,7 +6,7 @@ import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
-import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search, Calendar, Tag } from 'lucide-vue-next'
+import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search, Calendar, Tag, Power } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
@@ -32,12 +32,14 @@ const itemToDelete = ref<any>(null)
 const { selectedIds, toggleSelect, selectAll, deselectAll, isAllSelected } = useBulkActions(trips)
 const bulkDeleting = ref(false)
 const searchQuery = ref('')
+const statusFilter = ref('all')
+const togglingId = ref<string | null>(null)
 
 const fetchTrips = async () => {
     loading.value = true
     try {
         const res = await fetch(
-            `${apiUrl}/api/trips?populate[image][fields]=url&populate[offers][fields]=id&sort=createdAt:desc`,
+            `${apiUrl}/api/trips?populate[image][fields]=url&populate[offers][fields]=id&fields[0]=title&fields[1]=destination&fields[2]=attivo&fields[3]=slug&fields[4]=documentId&sort=createdAt:desc`,
             { headers: { Authorization: `Bearer ${token.value}` } }
         )
         const data = await res.json()
@@ -148,13 +150,42 @@ const getOffersCount = (trip: any) => {
     return offers?.data?.length || 0
 }
 
+const toggleActive = async (trip: any) => {
+    const docId = trip.documentId || trip.id
+    togglingId.value = docId
+    try {
+        const newVal = !trip.attivo
+        const res = await fetch(`${apiUrl}/api/trips/${docId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token.value}`,
+            },
+            body: JSON.stringify({ data: { attivo: newVal } }),
+        })
+        if (!res.ok) throw new Error('Errore aggiornamento')
+        const idx = trips.value.findIndex(t => (t.documentId || t.id) === docId)
+        if (idx !== -1) trips.value[idx].attivo = newVal
+        toast.success(`Viaggio ${newVal ? 'attivato' : 'disattivato'}`)
+    } catch (err) {
+        console.error('Toggle error:', err)
+        toast.error('Errore durante l\'aggiornamento dello stato')
+    } finally {
+        togglingId.value = null
+    }
+}
+
 const filteredTrips = computed(() => {
-    if (!searchQuery.value) return trips.value
-    const q = searchQuery.value.toLowerCase()
-    return trips.value.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.destination.toLowerCase().includes(q)
-    )
+    return trips.value.filter(t => {
+        const q = searchQuery.value.toLowerCase()
+        const matchesSearch = !searchQuery.value ||
+            t.title.toLowerCase().includes(q) ||
+            t.destination.toLowerCase().includes(q)
+        const matchesStatus = statusFilter.value === 'all' ||
+            (statusFilter.value === 'active' && t.attivo !== false) ||
+            (statusFilter.value === 'inactive' && t.attivo === false)
+        return matchesSearch && matchesStatus
+    })
 })
 
 
@@ -193,6 +224,12 @@ onMounted(fetchTrips)
                     <input v-model="searchQuery" type="text" placeholder="Cerca viaggio..."
                         class="w-full pl-10 pr-4 h-10 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                 </div>
+                <select v-model="statusFilter"
+                    class="h-10 px-4 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white cursor-pointer">
+                    <option value="all">Tutti</option>
+                    <option value="active">Attivi</option>
+                    <option value="inactive">Inattivi</option>
+                </select>
             </div>
 
             <!-- Bulk Action Bar -->
@@ -245,6 +282,9 @@ onMounted(fetchTrips)
                                 Destinazione</th>
                             <th
                                 class="text-center py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:table-cell">
+                                Stato</th>
+                            <th
+                                class="text-center py-4 px-4 text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:table-cell">
                                 Offerte</th>
                             <th class="text-right py-4 px-6 text-xs font-bold text-slate-400 uppercase tracking-wider">
                                 Azioni</th>
@@ -279,12 +319,26 @@ onMounted(fetchTrips)
                             </td>
                             <td class="py-4 px-4 text-center hidden sm:table-cell">
                                 <Badge
+                                    :class="trip.attivo !== false ? 'bg-green-100 text-green-700 border-none font-bold' : 'bg-slate-100 text-slate-500 border-none font-bold'">
+                                    {{ trip.attivo !== false ? 'Attivo' : 'Inattivo' }}
+                                </Badge>
+                            </td>
+                            <td class="py-4 px-4 text-center hidden sm:table-cell">
+                                <Badge
                                     class="bg-primary/10 text-primary border-none font-bold hover:bg-primary/10 cursor-default">
                                     {{ getOffersCount(trip) }}
                                 </Badge>
                             </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-end gap-2">
+                                    <button @click="toggleActive(trip)"
+                                        :disabled="togglingId === (trip.documentId || trip.id)"
+                                        class="p-2 rounded-xl transition-colors disabled:opacity-50"
+                                        :class="trip.attivo !== false ? 'text-green-500 hover:text-red-500 hover:bg-red-50' : 'text-slate-400 hover:text-green-500 hover:bg-green-50'"
+                                        :title="trip.attivo !== false ? 'Disattiva' : 'Attiva'">
+                                        <Loader2 v-if="togglingId === (trip.documentId || trip.id)" class="w-4 h-4 animate-spin" />
+                                        <Power v-else class="w-4 h-4" />
+                                    </button>
                                     <button @click="openDetails(trip)"
                                         class="p-2 text-slate-400 hover:text-secondary hover:bg-secondary/10 rounded-xl transition-colors"
                                         title="Visualizza Dettagli">

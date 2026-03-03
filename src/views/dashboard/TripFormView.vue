@@ -11,6 +11,8 @@ import {
 } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
 import RichTextEditor from '@/components/dashboard/RichTextEditor.vue'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +32,7 @@ const form = ref({
     destination: '',
     shortDescription: '',
     description: '',
+    attivo: true,
 })
 
 // Itinerary
@@ -62,6 +65,7 @@ const fetchTrip = async () => {
             destination: trip.destination || '',
             shortDescription: trip.shortDescription || '',
             description: trip.description || '',
+            attivo: trip.attivo !== undefined ? trip.attivo : true,
         }
         // Image
         const img = trip.image
@@ -175,6 +179,7 @@ const saveTrip = async () => {
             destination: form.value.destination,
             shortDescription: form.value.shortDescription || null,
             description: form.value.description || null,
+            attivo: form.value.attivo,
             itinerary: itinerary.value.filter(d => d.title.trim()),
         }
         if (imageId) payload.image = imageId
@@ -227,6 +232,14 @@ onMounted(fetchTrip)
                 <p class="text-sm text-slate-500 font-medium">
                     {{ isEdit ? 'Modifica i dettagli del viaggio' : 'Compila i campi per creare un nuovo viaggio' }}
                 </p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+                <Switch id="trip-active" :checked="form.attivo"
+                    @update:checked="(v: boolean) => form.attivo = v" />
+                <Label for="trip-active" class="text-xs font-bold cursor-pointer"
+                    :class="form.attivo ? 'text-green-600' : 'text-slate-500'">
+                    {{ form.attivo ? 'Attivo' : 'Inattivo' }}
+                </Label>
             </div>
         </div>
 
