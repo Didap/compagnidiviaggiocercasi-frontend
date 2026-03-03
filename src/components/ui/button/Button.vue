@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { type HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils'
-import { type PrimitiveProps } from 'radix-vue'
+import { Primitive, type PrimitiveProps } from 'radix-vue'
 
 interface Props extends PrimitiveProps {
   variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
@@ -17,8 +17,9 @@ const props = withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <component
-    :is="props.as"
+  <Primitive
+    :as="props.as"
+    :as-child="props.asChild"
     :class="cn(
       'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
       {
@@ -37,5 +38,5 @@ const props = withDefaults(defineProps<Props>(), {
     )"
   >
     <slot />
-  </component>
+  </Primitive>
 </template>
