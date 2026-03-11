@@ -163,7 +163,7 @@ import Button from '@/components/ui/button/Button.vue'
                 <!-- Roles Grid -->
                 <div class="mb-20">
                     <h3 class="text-3xl font-black text-center text-primary mb-10">🌍 Le figure che cerchiamo</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         <!-- Role 1 -->
                         <div
                             class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
@@ -192,6 +192,20 @@ import Button from '@/components/ui/button/Button.vue'
                             </p>
                         </div>
                         <!-- Role 3 -->
+                        <div
+                            class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+                            <div
+                                class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 text-xl font-bold mb-6">
+                                🧭
+                            </div>
+                            <h4 class="text-xl font-black text-slate-900 mb-3">Tour Leader</h4>
+                            <p class="text-slate-600 leading-relaxed text-sm">
+                                Figure dinamiche e affidabili che accompagnano i gruppi durante il viaggio,
+                                coordinando le attività e supportando i partecipanti. Sono il punto di riferimento del
+                                gruppo e contribuiscono a rendere l’esperienza fluida, coinvolgente e ben organizzata.
+                            </p>
+                        </div>
+                        <!-- Role 4 -->
                         <div
                             class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                             <div

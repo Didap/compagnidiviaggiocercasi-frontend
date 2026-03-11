@@ -194,24 +194,6 @@ const installmentsCount = computed(() => {
     if (Array.isArray(configs) && configs.length > 0) return configs.length
     return offer.value?.installmentsCount || 3
 })
-// Balance for installments: total price minus deposit
-const totalPriceOnly = computed(() => ((offer.value?.price || 0) - (offer.value?.depositPrice || 0)) * participants.value.length + supplementsTotal.value)
-
-const installmentAmount = computed(() => {
-    if (!installmentsAvailable.value) return 0
-    const configs = offer.value?.installmentConfigs
-    const count = (Array.isArray(configs) && configs.length > 0) ? configs.length : (offer.value?.installmentsCount || 3)
-    // If evenly divisible, use clean division
-    if (totalPriceOnly.value % count === 0) {
-        return totalPriceOnly.value / count
-    }
-    // Otherwise, use percentage-based calculation
-    if (Array.isArray(configs) && configs.length > 0) {
-        const firstPct = Number(configs[0].percentage) || 0
-        return Math.round((totalPriceOnly.value * firstPct / 100) * 100) / 100
-    }
-    return Math.floor((totalPriceOnly.value / count) * 100) / 100
-})
 
 const firstPaymentAmount = computed(() => {
     if (paymentOption.value === 'full') return totalAmount.value
@@ -697,8 +679,7 @@ onMounted(fetchOffer)
                                             <Users class="w-5 h-5 text-primary flex-shrink-0" />
                                             <span class="text-sm font-medium">{{ participants.length }} {{
                                                 participants.length === 1 ?
-                                                    'partecipante' : 'partecipanti' }} ({{ offer.price + offer.depositPrice
-                                                }}€ cad.)</span>
+                                                    'partecipante' : 'partecipanti' }} ({{ offer.price }}€ cad.)</span>
                                         </div>
 
                                         <!-- Invoice Request (Relocated to Sidebar) -->
@@ -763,8 +744,7 @@ onMounted(fetchOffer)
                                                             rate</span>
                                                         <p class="text-[11px] text-slate-500 leading-tight">Acconto {{
                                                             totalDeposit }}€ + {{
-                                                                installmentsCount }} rate da
-                                                            {{ installmentAmount }}€</p>
+                                                                installmentsCount }} rate</p>
                                                     </div>
                                                 </label>
                                             </div>

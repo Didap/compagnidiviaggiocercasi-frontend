@@ -3,9 +3,10 @@ import { ref, onMounted, computed } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import Card from '@/components/ui/card/Card.vue'
 import CardContent from '@/components/ui/card/CardContent.vue'
-import { Mail, Trash2, Loader2, Download, Search } from 'lucide-vue-next'
+import { Mail, Trash2, Loader2, Download, Search, PenSquare } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
+import SendNewsletterModal from './SendNewsletterModal.vue'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -20,6 +21,8 @@ const searchQuery = ref('')
 const showConfirm = ref(false)
 const confirmMessage = ref('')
 const itemToDelete = ref<any>(null)
+// Modal State
+const isModalOpen = ref(false)
 
 const fetchSubscribers = async () => {
     loading.value = true
@@ -119,11 +122,18 @@ onMounted(fetchSubscribers)
                 <h1 class="text-2xl font-black text-slate-900">Newsletter</h1>
                 <p class="text-slate-500 text-sm font-medium">Gestisci gli iscritti alla newsletter</p>
             </div>
-            <button @click="exportCSV" :disabled="subscribers.length === 0"
-                class="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all disabled:opacity-50">
-                <Download class="w-4 h-4" />
-                Esporta CSV
-            </button>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button @click="isModalOpen = true"
+                    class="flex items-center justify-center gap-2 px-6 py-2 bg-primary text-white rounded-xl font-bold hover:bg-primary/90 transition-all shadow-sm">
+                    <PenSquare class="w-4 h-4" />
+                    Scrivi Newsletter
+                </button>
+                <button @click="exportCSV" :disabled="subscribers.length === 0"
+                    class="flex items-center justify-center gap-2 px-6 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 transition-all disabled:opacity-50 shadow-sm">
+                    <Download class="w-4 h-4" />
+                    Esporta CSV
+                </button>
+            </div>
         </div>
 
         <!-- Filters -->
@@ -175,7 +185,7 @@ onMounted(fetchSubscribers)
                                         <Mail class="w-4 h-4" />
                                     </div>
                                     <span class="font-bold text-slate-700">{{ sub.attributes?.email || sub.email
-                                        }}</span>
+                                    }}</span>
                                 </div>
                             </td>
                             <td class="py-4 px-6 text-sm text-slate-500">
@@ -197,4 +207,6 @@ onMounted(fetchSubscribers)
 
     <ConfirmDialog :isOpen="showConfirm" title="Rimuovi Iscritto" :message="confirmMessage" confirmText="Rimuovi"
         variant="danger" @close="showConfirm = false" @confirm="confirmDelete" />
+
+    <SendNewsletterModal :isOpen="isModalOpen" @close="isModalOpen = false" />
 </template>

@@ -95,7 +95,28 @@ import Navbar from '@/components/Navbar.vue'
                     <p>Eventuali reclami devono essere presentati senza ritardo durante il viaggio e, comunque, entro 10
                         giorni dal rientro, tramite comunicazione scritta all’indirizzo PEC dell’Organizzatore.</p>
 
-                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-4">12. Foro competente</h3>
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-4">12. Circostanze inevitabili e straordinarie
+                        (Forza maggiore)</h3>
+                    <p>Si intendono eventi al di fuori del controllo dell’Organizzatore, le cui conseguenze non
+                        avrebbero
+                        potuto essere evitate nemmeno adottando tutte le misure ragionevoli, quali a titolo
+                        esemplificativo:
+                        guerre, conflitti armati, atti terroristici, calamità naturali, epidemie/pandemie, disordini
+                        civili, decisioni
+                        delle autorità, chiusura di confini o dello spazio aereo.</p>
+
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-4">13. Modifiche, sospensioni o annullamenti per
+                        forza maggiore</h3>
+                    <p>In presenza di circostanze inevitabili e straordinarie, l’Organizzatore può modificare,
+                        sospendere o
+                        annullare i servizi previsti. Non saranno dovuti indennizzi o risarcimenti. Eventuali rimborsi
+                        saranno
+                        limitati esclusivamente alle somme effettivamente recuperate dai fornitori dei servizi non
+                        usufruiti. I
+                        fornitori operano in piena autonomia e l’Organizzatore agisce esclusivamente come intermediario.
+                    </p>
+
+                    <h3 class="text-xl font-bold text-slate-800 mt-8 mb-4">14. Foro competente</h3>
                     <p>Per le controversie con consumatori è competente il foro del luogo di residenza o domicilio del
                         viaggiatore.</p>
 
