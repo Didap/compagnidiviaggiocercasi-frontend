@@ -3,7 +3,6 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useBlog, type Post } from '@/composables/useBlog'
 import Navbar from '@/components/Navbar.vue'
-import Footer from '@/components/layout/Footer.vue'
 import BlocksRenderer from '@/components/blog/BlocksRenderer.vue'
 import { Calendar, User, ArrowLeft } from 'lucide-vue-next'
 import { format } from 'date-fns'
@@ -103,7 +102,5 @@ const formatDate = (dateString: string) => {
                 </button>
             </div>
         </article>
-
-        <Footer />
     </main>
 </template>
