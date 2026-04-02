@@ -32,7 +32,7 @@ const offerId = route.query.offer_id
                     </p>
 
                     <div class="space-y-3">
-                        <RouterLink v-if="offerId" :to="`/offer/${offerId}`">
+                        <RouterLink v-if="offerId" :to="`/prenota/${offerId}`">
                             <Button
                                 class="w-full h-12 text-base font-bold rounded-xl shadow-md hover:shadow-lg transition-all group">
                                 <RefreshCw
