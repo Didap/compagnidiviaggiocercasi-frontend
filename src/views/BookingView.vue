@@ -25,6 +25,7 @@ import {
     Home
 } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
+import { isOfferBookable } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,6 +141,7 @@ const availableSeats = computed(() => {
 })
 
 const isSoldOut = computed(() => availableSeats.value <= 0)
+const isBookable = computed(() => isOfferBookable(offer.value))
 
 const canAddTraveler = computed(() => participants.value.length < availableSeats.value)
 
@@ -230,7 +232,7 @@ const isFormValid = computed(() => {
     )
     const phoneValid = isAuthenticated.value || guestPhone.value.trim() !== ''
 
-    return participantsValid && profileValid && emailValid && passwordValid && phoneValid
+    return participantsValid && profileValid && emailValid && passwordValid && phoneValid && isBookable.value
 })
 
 const submitBooking = async () => {
@@ -399,6 +401,19 @@ onMounted(fetchOffer)
                                 contatteremo a breve per completare il pagamento dell'acconto.</p>
                             <RouterLink to="/profilo">
                                 <Button size="lg" class="rounded-full px-10">Vai alle mie prenotazioni</Button>
+                            </RouterLink>
+                        </div>
+
+                        <div v-else-if="!isBookable"
+                            class="bg-amber-50 rounded-[2.5rem] p-10 text-center border-2 border-amber-100 shadow-xl shadow-amber-900/5 transition-all animate-in fade-in zoom-in duration-500">
+                            <div
+                                class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Clock class="w-10 h-10 text-amber-600" />
+                            </div>
+                            <h2 class="text-3xl font-black text-amber-800 mb-4">Prenotazioni Chiuse</h2>
+                            <p class="text-amber-700 font-medium mb-8">Purtroppo le prenotazioni per questo viaggio sono terminate poiché siamo troppo vicini alla data di partenza.</p>
+                            <RouterLink to="/viaggi">
+                                <Button size="lg" class="rounded-full px-10">Esplora altri viaggi</Button>
                             </RouterLink>
                         </div>
 
@@ -787,10 +802,11 @@ onMounted(fetchOffer)
                                                     <span>Inviando...</span>
                                                 </div>
                                                 <span v-else-if="success">Inviato con successo</span>
+                                                <span v-else-if="!isBookable">Prenotazioni Chiuse</span>
                                                 <span v-else-if="isSoldOut">Sold Out</span>
                                                 <span v-else-if="!isFormValid">Compila tutti i campi</span>
                                                 <span v-else>Conferma e paga</span>
-                                                <ArrowRight v-if="!submitting && !success && !isSoldOut && isFormValid"
+                                                <ArrowRight v-if="!submitting && !success && !isSoldOut && isFormValid && isBookable"
                                                     class="w-5 h-5 transition-transform duration-300 group-hover/btn:translate-x-1" />
                                             </Button>
                                         </div>
