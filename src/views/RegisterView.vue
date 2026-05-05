@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useNewsletter } from '@/composables/useNewsletter'
 import Navbar from '@/components/Navbar.vue'
 import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
@@ -12,6 +13,7 @@ import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-vue-next'
 const route = useRoute()
 const router = useRouter()
 const { register, loading, error } = useAuth()
+const { subscribeToNewsletter } = useNewsletter()
 
 const form = ref({
   firstName: '',
@@ -22,6 +24,7 @@ const form = ref({
   confirmPassword: '',
   phone: '',
   birthday: '',
+  subscribeNewsletter: true,
 })
 
 const showPassword = ref(false)
@@ -50,6 +53,9 @@ const handleSubmit = async () => {
       phone: form.value.phone || undefined,
       birthday: form.value.birthday || undefined,
     })
+    if (form.value.subscribeNewsletter) {
+      subscribeToNewsletter(form.value.email)
+    }
     const redirect = route.query.redirect as string
     router.push(redirect || '/')
   } catch {
@@ -186,6 +192,15 @@ const displayError = () => localError.value || error.value
                 <DateOfBirthPicker v-model="form.birthday" />
               </div>
             </div>
+
+            <!-- Newsletter opt-in -->
+            <label class="flex items-start gap-2.5 cursor-pointer select-none pt-1">
+              <input v-model="form.subscribeNewsletter" type="checkbox"
+                class="mt-0.5 w-4 h-4 rounded border-slate-300 text-primary focus:ring-2 focus:ring-primary/30 cursor-pointer accent-primary" />
+              <span class="text-sm text-slate-600 leading-snug">
+                Iscrivimi alla newsletter per ricevere novità su viaggi e offerte
+              </span>
+            </label>
 
             <!-- Submit -->
             <Button type="submit"

@@ -53,23 +53,35 @@ export function useTrips() {
     }
 
     const sortTripsBySoonestDeparture = (tripsToSort: Trip[]) => {
+        const getActiveOffers = (trip: any) => {
+            const t = trip.attributes || trip
+            const offersRaw = t.offers
+            const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
+            return offers
+                .map((o: any) => o.attributes || o)
+                .filter((o: any) => o.attivo !== false)
+        }
+
+        const hasFeaturedOffer = (trip: any) => {
+            return getActiveOffers(trip).some((o: any) => o.inEvidenza === true)
+        }
+
+        const getEarliestDate = (trip: any) => {
+            let earliest = Infinity
+            getActiveOffers(trip).forEach((o: any) => {
+                if (o.startDate) {
+                    const time = new Date(o.startDate).getTime()
+                    if (time < earliest) earliest = time
+                }
+            })
+            return earliest
+        }
+
         return [...tripsToSort].sort((a: any, b: any) => {
-            const getEarliestDate = (trip: any) => {
-                const t = trip.attributes || trip
-                const offersRaw = t.offers
-                const offers = Array.isArray(offersRaw?.data) ? offersRaw.data : (Array.isArray(offersRaw) ? offersRaw : [])
-
-                let earliest = Infinity
-                offers.forEach((o: any) => {
-                    const oData = o.attributes || o
-                    if (oData.startDate && (o.attributes?.attivo !== false && o.attivo !== false)) {
-                        const time = new Date(oData.startDate).getTime()
-                        if (time < earliest) earliest = time
-                    }
-                })
-                return earliest
-            }
-
+            const aFeatured = hasFeaturedOffer(a)
+            const bFeatured = hasFeaturedOffer(b)
+            if (aFeatured && !bFeatured) return -1
+            if (!aFeatured && bFeatured) return 1
             return getEarliestDate(a) - getEarliestDate(b)
         })
     }

@@ -16,7 +16,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { parseDate, type DateValue } from '@internationalized/date'
 import {
-    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar, Eye,
+    Plus, Pencil, Trash2, Tag, Loader2, X, Save, Calendar, Eye, Heart,
 } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
@@ -31,6 +31,7 @@ const offers = ref<any[]>([])
 const trips = ref<any[]>([])
 const loading = ref(true)
 const deleting = ref<string | null>(null)
+const togglingPriority = ref<string | null>(null)
 const selectedOffer = ref<any>(null)
 const offerBookings = ref<any[]>([])
 const loadingDetails = ref(false)
@@ -549,6 +550,33 @@ const saveOffer = async () => {
         formError.value = err.message
     } finally {
         saving.value = false
+    }
+}
+
+const togglePriority = async (offer: any) => {
+    const docId = offer.documentId || offer.id
+    if (togglingPriority.value === docId) return
+    const next = !offer.inEvidenza
+    togglingPriority.value = docId
+    // Optimistic update
+    offer.inEvidenza = next
+    try {
+        const res = await fetch(`${apiUrl}/api/offers/${docId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token.value}`,
+            },
+            body: JSON.stringify({ data: { inEvidenza: next } }),
+        })
+        if (!res.ok) throw new Error('Errore aggiornamento')
+        toast.success(next ? 'Offerta messa in evidenza' : 'Offerta rimossa dalla evidenza')
+    } catch (err) {
+        // Rollback
+        offer.inEvidenza = !next
+        toast.error('Impossibile aggiornare la priorità')
+    } finally {
+        togglingPriority.value = null
     }
 }
 
@@ -1081,6 +1109,18 @@ onMounted(fetchData)
                             </td>
                             <td class="py-4 px-6" @click.stop>
                                 <div class="flex items-center justify-end gap-2">
+                                    <button @click="togglePriority(offer)"
+                                        :disabled="togglingPriority === (offer.documentId || offer.id)"
+                                        :title="offer.inEvidenza ? 'Rimuovi dalla evidenza' : 'Metti in evidenza'"
+                                        class="p-2 rounded-xl transition-colors disabled:opacity-50"
+                                        :class="offer.inEvidenza
+                                            ? 'text-rose-500 hover:bg-rose-50'
+                                            : 'text-slate-300 hover:text-rose-500 hover:bg-rose-50'">
+                                        <Loader2 v-if="togglingPriority === (offer.documentId || offer.id)"
+                                            class="w-4 h-4 animate-spin" />
+                                        <Heart v-else class="w-4 h-4"
+                                            :class="offer.inEvidenza ? 'fill-rose-500' : ''" />
+                                    </button>
                                     <button @click="openDetails(offer)"
                                         class="p-2 text-slate-400 hover:text-secondary hover:bg-secondary/10 rounded-xl transition-colors">
                                         <Eye class="w-4 h-4" />
