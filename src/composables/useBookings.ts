@@ -13,15 +13,10 @@ export function useBookings() {
         loading.value = true
         error.value = null
         try {
-            const data: any = await $api('/api/bookings', {
-                params: {
-                    'filters[user][id][$eq]': user.value.id,
-                    'populate[participants]': '*',
-                    'populate[offer][populate][trip][populate]': '*',
-                    'populate[offer][populate][itinerary]': '*',
-                    'populate[paymentSteps]': '*',
-                }
-            })
+            // Filtering and populate happen server-side: the content API rejects
+            // filters on user relations ("Invalid key user"), so /api/bookings
+            // with query filters always returned 400 and an empty profile.
+            const data: any = await $api('/api/bookings/mine')
 
             const bookingList = data.data || []
             // Sort by start date descending
