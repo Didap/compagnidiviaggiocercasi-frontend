@@ -113,8 +113,8 @@ const displayError = () => localError.value || error.value
     </div>
 
     <!-- Content -->
-    <div class="flex-1 flex items-center justify-center px-5 sm:px-4 relative z-20 overflow-y-auto">
-      <div class="w-full max-w-lg py-4">
+    <div class="flex-1 flex items-start justify-center px-5 sm:px-4 relative z-20 overflow-y-auto">
+      <div class="w-full max-w-lg pt-24 sm:pt-28 pb-8">
 
         <!-- Header -->
         <div class="text-center mb-4 sm:mb-5">
