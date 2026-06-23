@@ -206,6 +206,24 @@ const getTripName = (booking: any) => {
     return booking.offer?.trip?.title || 'Viaggio sconosciuto'
 }
 
+// Dati di fatturazione: l'utente li inserisce (obbligatoriamente) in fase di
+// prenotazione, quindi vengono salvati su ogni booking. Mostriamo quelli della
+// prenotazione più recente che li contiene, con fallback ai campi dell'utente.
+const billing = computed(() => {
+    const b = userBookings.value.find((bk: any) =>
+        bk.codiceFiscale || bk.address || bk.city || bk.zip || bk.province)
+    const u = selectedUser.value
+    return {
+        codiceFiscale: b?.codiceFiscale || u?.codiceFiscale || '',
+        address: b?.address || u?.address || '',
+        city: b?.city || u?.city || '',
+        zip: b?.zip || u?.zip || '',
+        province: b?.province || u?.province || '',
+    }
+})
+const hasBilling = computed(() =>
+    Object.values(billing.value).some((v: any) => v && String(v).trim() !== ''))
+
 onMounted(fetchData)
 </script>
 
@@ -423,6 +441,37 @@ onMounted(fetchData)
                                     <p class="text-xs text-slate-400 mb-0.5">Confermato</p>
                                     <p class="text-sm font-bold" :class="selectedUser.confirmed ? 'text-green-600' : 'text-amber-600'">{{ selectedUser.confirmed ? 'Sì' : 'No' }}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Dati di Fatturazione -->
+                        <div class="bg-slate-50 rounded-2xl p-5">
+                            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Dati di Fatturazione</h3>
+                            <div v-if="hasBilling" class="grid grid-cols-2 gap-4">
+                                <div class="col-span-2">
+                                    <p class="text-xs text-slate-400 mb-0.5">Indirizzo di residenza</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ billing.address || '—' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Città</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ billing.city || '—' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">CAP</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ billing.zip || '—' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Provincia</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ billing.province || '—' }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-slate-400 mb-0.5">Codice Fiscale</p>
+                                    <p class="text-sm font-bold text-slate-800">{{ billing.codiceFiscale || '—' }}</p>
+                                </div>
+                            </div>
+                            <div v-else-if="loadingDetails" class="text-sm text-slate-400">Caricamento…</div>
+                            <div v-else class="text-sm text-slate-400">
+                                Nessun dato di fatturazione. L'utente li inserisce al momento della prenotazione.
                             </div>
                         </div>
 

@@ -72,6 +72,11 @@ export function useAuth() {
         lastName: string
         phone?: string
         birthday?: string
+        codiceFiscale?: string
+        address?: string
+        city?: string
+        zip?: string
+        province?: string
     }) {
         loading.value = true
         error.value = null

@@ -8,7 +8,7 @@ import Button from '@/components/ui/button/Button.vue'
 import Input from '@/components/ui/input/Input.vue'
 import Label from '@/components/ui/label/Label.vue'
 import DateOfBirthPicker from '@/components/ui/date-picker/DateOfBirthPicker.vue'
-import { User, Mail, Lock, Eye, EyeOff, Phone } from 'lucide-vue-next'
+import { User, Mail, Lock, Eye, EyeOff, Phone, MapPin, Building2, FileText } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -24,6 +24,11 @@ const form = ref({
   confirmPassword: '',
   phone: '',
   birthday: '',
+  codiceFiscale: '',
+  address: '',
+  city: '',
+  province: '',
+  zip: '',
   subscribeNewsletter: true,
 })
 
@@ -43,6 +48,18 @@ const handleSubmit = async () => {
     return
   }
 
+  // Dati di fatturazione obbligatori (servono per generare le fatture)
+  if (
+    !form.value.codiceFiscale.trim() ||
+    !form.value.address.trim() ||
+    !form.value.city.trim() ||
+    !form.value.province.trim() ||
+    !form.value.zip.trim()
+  ) {
+    localError.value = 'Compila tutti i dati di fatturazione (codice fiscale, indirizzo, città, provincia e CAP)'
+    return
+  }
+
   try {
     await register({
       firstName: form.value.firstName,
@@ -52,6 +69,11 @@ const handleSubmit = async () => {
       password: form.value.password,
       phone: form.value.phone || undefined,
       birthday: form.value.birthday || undefined,
+      codiceFiscale: form.value.codiceFiscale.trim().toUpperCase(),
+      address: form.value.address.trim(),
+      city: form.value.city.trim(),
+      province: form.value.province.trim().toUpperCase(),
+      zip: form.value.zip.trim(),
     })
     if (form.value.subscribeNewsletter) {
       subscribeToNewsletter(form.value.email)
@@ -190,6 +212,63 @@ const displayError = () => localError.value || error.value
               <div class="space-y-1">
                 <Label for="birthday" class="text-slate-700 font-semibold text-sm">Data di nascita</Label>
                 <DateOfBirthPicker v-model="form.birthday" />
+              </div>
+            </div>
+
+            <!-- Billing data -->
+            <div class="pt-1">
+              <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Dati di fatturazione</p>
+
+              <div class="space-y-3 sm:space-y-4">
+                <!-- Codice Fiscale -->
+                <div class="space-y-1">
+                  <Label for="codiceFiscale" class="text-slate-700 font-semibold text-sm">Codice Fiscale *</Label>
+                  <div class="relative">
+                    <FileText class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/60" />
+                    <Input id="codiceFiscale" v-model="form.codiceFiscale" type="text" placeholder="RSSMRA85M01H501Z"
+                      maxlength="16"
+                      class="pl-10 h-11 rounded-xl border-slate-200/80 bg-white/60 focus:bg-white focus:border-primary/40 transition-all text-base uppercase"
+                      required />
+                  </div>
+                </div>
+
+                <!-- Indirizzo -->
+                <div class="space-y-1">
+                  <Label for="address" class="text-slate-700 font-semibold text-sm">Indirizzo di residenza *</Label>
+                  <div class="relative">
+                    <MapPin class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/60" />
+                    <Input id="address" v-model="form.address" type="text" placeholder="Es. Via Roma 1"
+                      class="pl-10 h-11 rounded-xl border-slate-200/80 bg-white/60 focus:bg-white focus:border-primary/40 transition-all text-base"
+                      required />
+                  </div>
+                </div>
+
+                <!-- Città -->
+                <div class="space-y-1">
+                  <Label for="city" class="text-slate-700 font-semibold text-sm">Città *</Label>
+                  <div class="relative">
+                    <Building2 class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/60" />
+                    <Input id="city" v-model="form.city" type="text" placeholder="Es. Roma"
+                      class="pl-10 h-11 rounded-xl border-slate-200/80 bg-white/60 focus:bg-white focus:border-primary/40 transition-all text-base"
+                      required />
+                  </div>
+                </div>
+
+                <!-- Provincia & CAP Row -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <Label for="province" class="text-slate-700 font-semibold text-sm">Provincia *</Label>
+                    <Input id="province" v-model="form.province" type="text" placeholder="Es. RM" maxlength="2"
+                      class="h-11 rounded-xl border-slate-200/80 bg-white/60 focus:bg-white focus:border-primary/40 transition-all text-base uppercase"
+                      required />
+                  </div>
+                  <div class="space-y-1">
+                    <Label for="zip" class="text-slate-700 font-semibold text-sm">CAP *</Label>
+                    <Input id="zip" v-model="form.zip" type="text" placeholder="Es. 00100" maxlength="5"
+                      class="h-11 rounded-xl border-slate-200/80 bg-white/60 focus:bg-white focus:border-primary/40 transition-all text-base"
+                      required />
+                  </div>
+                </div>
               </div>
             </div>
 
