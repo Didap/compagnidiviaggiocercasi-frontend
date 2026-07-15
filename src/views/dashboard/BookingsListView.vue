@@ -10,6 +10,7 @@ import {
 import { useToast } from '@/composables/useToast'
 import { useBulkActions } from '@/composables/useBulkActions'
 import { TableSkeleton } from '@/components/ui/skeleton'
+import { fetchAllPages } from '@/lib/api'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -25,11 +26,10 @@ const selectedBooking = ref<any>(null)
 const fetchData = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${apiUrl}/api/bookings?populate[offer][populate]=trip&populate[user][fields][0]=username&populate[user][fields][1]=email&populate[user][fields][2]=firstName&populate[user][fields][3]=lastName&populate[participants]=*&populate[paymentSteps]=*&sort=createdAt:desc`, {
-            headers: { Authorization: `Bearer ${token.value}` },
-        })
-        const data = await res.json()
-        bookings.value = data.data || []
+        bookings.value = await fetchAllPages(
+            `/api/bookings?populate[offer][populate]=trip&populate[user][fields][0]=username&populate[user][fields][1]=email&populate[user][fields][2]=firstName&populate[user][fields][3]=lastName&populate[participants]=*&populate[paymentSteps]=*&sort[0]=createdAt:desc&sort[1]=id:desc`,
+            token.value
+        )
     } catch (err) {
         console.error('Error fetching bookings:', err)
     } finally {

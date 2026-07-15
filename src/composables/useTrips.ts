@@ -33,8 +33,24 @@ export function useTrips() {
                 ...params
             }
 
-            const data: any = await $api('/api/trips', { params: defaultParams })
-            trips.value = data.data || []
+            // Senza paginazione Strapi si ferma a 25 viaggi: itera le pagine
+            const all: any[] = []
+            let page = 1
+            let pageCount = 1
+            do {
+                const data: any = await $api('/api/trips', {
+                    params: {
+                        ...defaultParams,
+                        'pagination[page]': page,
+                        'pagination[pageSize]': 100
+                    }
+                })
+                all.push(...(data.data || []))
+                pageCount = data.meta?.pagination?.pageCount || 1
+                page++
+            } while (page <= pageCount)
+
+            trips.value = all
             return trips.value
         } catch (err: any) {
             console.error('Error fetching trips:', err)

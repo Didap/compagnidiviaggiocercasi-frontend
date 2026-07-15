@@ -22,6 +22,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import RichTextEditor from '@/components/dashboard/RichTextEditor.vue'
+import { fetchAllPages } from '@/lib/api'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -148,18 +149,12 @@ const openDetails = async (offer: any) => {
 const fetchData = async () => {
     loading.value = true
     try {
-        const [offersRes, tripsRes] = await Promise.all([
-            fetch(`${apiUrl}/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&sort=createdAt:desc`, {
-                headers: { Authorization: `Bearer ${token.value}` },
-            }),
-            fetch(`${apiUrl}/api/trips?fields=title,documentId&sort=title:asc`, {
-                headers: { Authorization: `Bearer ${token.value}` },
-            }),
+        const [offersData, tripsData] = await Promise.all([
+            fetchAllPages(`/api/offers?populate[trip][fields]=title,documentId&populate[participants][fields]=id&populate[itinerary]=*&populate[installmentConfigs]=*&sort[0]=createdAt:desc&sort[1]=id:desc`, token.value),
+            fetchAllPages(`/api/trips?fields=title,documentId&sort=title:asc`, token.value),
         ])
-        const offersData = await offersRes.json()
-        const tripsData = await tripsRes.json()
-        offers.value = offersData.data || []
-        trips.value = tripsData.data || []
+        offers.value = offersData
+        trips.value = tripsData
     } catch (err) {
         console.error('Error:', err)
     } finally {

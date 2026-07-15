@@ -8,6 +8,7 @@ import { Star, Trash2, Loader2, Eye, EyeOff, X } from 'lucide-vue-next'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { CardListSkeleton } from '@/components/ui/skeleton'
+import { fetchAllPages } from '@/lib/api'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -26,12 +27,21 @@ const itemToDelete = ref<any>(null)
 const fetchReviews = async () => {
     loading.value = true
     try {
-        const res = await fetch(
-            `${apiUrl}/api/reviews?populate[trip][fields]=title&populate[user][fields]=username&sort=createdAt:desc&publicationState=preview`,
-            { headers: { Authorization: `Bearer ${token.value}` } }
-        )
-        const data = await res.json()
-        reviews.value = data.data || []
+        // In Strapi v5 non esiste più publicationState=preview: la lista di
+        // moderazione legge le bozze (esistono per ogni recensione) e ricava
+        // lo stato "pubblicata" dalla presenza della versione published.
+        const [drafts, published] = await Promise.all([
+            fetchAllPages(
+                `/api/reviews?populate[trip][fields]=title&populate[user][fields]=username&sort[0]=createdAt:desc&sort[1]=id:desc&status=draft`,
+                token.value
+            ),
+            fetchAllPages(`/api/reviews?fields[0]=publishedAt`, token.value),
+        ])
+        const publishedByDoc = new Map(published.map((r: any) => [r.documentId, r.publishedAt]))
+        reviews.value = drafts.map((r: any) => ({
+            ...r,
+            publishedAt: publishedByDoc.get(r.documentId) || null,
+        }))
     } catch (err) {
         console.error('Error:', err)
     } finally {
@@ -48,17 +58,10 @@ const togglePublish = async (review: any) => {
     review.publishedAt = isPublished ? null : new Date().toISOString()
 
     try {
-        const res = await fetch(`${apiUrl}/api/reviews/${docId}`, {
+        // Route custom: il content API v5 non permette di scrivere publishedAt
+        const res = await fetch(`${apiUrl}/api/reviews/${docId}/${isPublished ? 'unpublish' : 'publish'}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token.value}`
-            },
-            body: JSON.stringify({
-                data: {
-                    publishedAt: isPublished ? null : new Date().toISOString()
-                }
-            })
+            headers: { Authorization: `Bearer ${token.value}` }
         })
 
         if (!res.ok) {

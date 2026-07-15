@@ -8,6 +8,7 @@ import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Plus, Pencil, Trash2, MapPin, Eye, Loader2, X, Search, Calendar, Tag, Power } from 'lucide-vue-next'
 import { getImageUrl } from '@/utils/image'
+import { fetchAllPages } from '@/lib/api'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import { useToast } from '@/composables/useToast'
 import { useBulkActions } from '@/composables/useBulkActions'
@@ -38,12 +39,11 @@ const togglingId = ref<string | null>(null)
 const fetchTrips = async () => {
     loading.value = true
     try {
-        const res = await fetch(
-            `${apiUrl}/api/trips?populate[image][fields]=url&populate[offers][fields]=id&fields[0]=title&fields[1]=destination&fields[2]=attivo&fields[3]=slug&fields[4]=documentId&sort=createdAt:desc`,
-            { headers: { Authorization: `Bearer ${token.value}` } }
+        // sort[1]=id spareggia i createdAt identici: senza, l'ordine tra le pagine non è stabile
+        trips.value = await fetchAllPages(
+            `/api/trips?populate[image][fields]=url&populate[offers][fields]=id&fields[0]=title&fields[1]=destination&fields[2]=attivo&fields[3]=slug&fields[4]=documentId&sort[0]=createdAt:desc&sort[1]=id:desc`,
+            token.value
         )
-        const data = await res.json()
-        trips.value = data.data || []
     } catch (err) {
         console.error('Error fetching trips:', err)
     } finally {
@@ -155,7 +155,8 @@ const toggleActive = async (trip: any) => {
     togglingId.value = docId
     try {
         const newVal = !trip.attivo
-        const res = await fetch(`${apiUrl}/api/trips/${docId}`, {
+        // status=published: senza, Strapi v5 aggiorna solo la bozza e il sito resta stantio
+        const res = await fetch(`${apiUrl}/api/trips/${docId}?status=published`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

@@ -7,6 +7,7 @@ import Button from '@/components/ui/button/Button.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { RouterLink } from 'vue-router'
 import { Map as MapIcon, Tag, Star, Users, Plus, ArrowRight, Ticket, TrendingUp, Clock } from 'lucide-vue-next'
+import { fetchAllPages } from '@/lib/api'
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -58,29 +59,28 @@ const fetchStats = async () => {
         ])
 
         // Fetch all confirmed bookings for revenue & chart
-        const allBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=confirmed&populate[participants]=*&pagination[pageSize]=1000&sort=createdAt:asc`, { headers })
-        const allBookings = await allBookingsRes.json()
+        // (il server taglia pageSize a 100: bisogna iterare le pagine)
+        const allBookings = await fetchAllPages(`/api/bookings?filters[status][$eq]=confirmed&populate[participants]=*&sort=createdAt:asc`, token.value)
 
         // Calculate Total Revenue (using stored totalPrice)
-        const revenue = (allBookings.data || []).reduce((sum: number, b: any) => {
+        const revenue = allBookings.reduce((sum: number, b: any) => {
             return sum + (Number(b.totalPrice) || 0)
         }, 0)
 
         // Calculate Revenue History (Group by Date)
         const historyMap = new Map<string, number>()
-            ; (allBookings.data || []).forEach((b: any) => {
-                const date = new Date(b.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
-                const amount = Number(b.totalPrice) || 0
-                historyMap.set(date, (historyMap.get(date) || 0) + amount)
-            })
+        allBookings.forEach((b: any) => {
+            const date = new Date(b.createdAt).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })
+            const amount = Number(b.totalPrice) || 0
+            historyMap.set(date, (historyMap.get(date) || 0) + amount)
+        })
 
         // Fill in missing days if needed, but for now just show active days
         revenueHistory.value = Array.from(historyMap.entries()).map(([date, amount]) => ({ date, amount }))
 
         // Pending revenue
-        const pendingBookingsRes = await fetch(`${apiUrl}/api/bookings?filters[status][$eq]=pending&populate[participants]=*&pagination[pageSize]=1000`, { headers })
-        const pendingBookings = await pendingBookingsRes.json()
-        const pendingRevenue = (pendingBookings.data || []).reduce((sum: number, b: any) => {
+        const pendingBookings = await fetchAllPages(`/api/bookings?filters[status][$eq]=pending&populate[participants]=*`, token.value)
+        const pendingRevenue = pendingBookings.reduce((sum: number, b: any) => {
             return sum + (Number(b.totalPrice) || 0)
         }, 0)
 
@@ -90,8 +90,8 @@ const fetchStats = async () => {
         const cancelledCount = cancelledBookingsData.meta?.pagination?.total || 0
 
         bookingCounts.value = {
-            confirmed: allBookings.data?.length || 0,
-            pending: pendingBookings.data?.length || 0,
+            confirmed: allBookings.length,
+            pending: pendingBookings.length,
             cancelled: cancelledCount
         }
 

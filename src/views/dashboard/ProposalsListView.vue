@@ -6,6 +6,7 @@ import CardContent from '@/components/ui/card/CardContent.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Map, Loader2, Eye, X, Check, XCircle, Search, Clock } from 'lucide-vue-next'
 import { useToast } from '@/composables/useToast'
+import { fetchAllPages } from '@/lib/api'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -21,11 +22,10 @@ const filterStatus = ref('all')
 const fetchProposals = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${apiUrl}/api/trip-proposals?populate[user][fields]=username,email&sort=createdAt:desc&pagination[pageSize]=50`, {
-            headers: { Authorization: `Bearer ${token.value}` }
-        })
-        const data = await res.json()
-        proposals.value = data.data || []
+        proposals.value = await fetchAllPages(
+            `/api/trip-proposals?populate[user][fields]=username,email&sort[0]=createdAt:desc&sort[1]=id:desc`,
+            token.value
+        )
     } catch (err) {
         console.error('Error fetching proposals:', err)
         toast.error('Errore nel caricamento delle proposte')

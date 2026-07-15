@@ -7,6 +7,7 @@ import { Mail, Trash2, Loader2, Download, Search, PenSquare } from 'lucide-vue-n
 import { useToast } from '@/composables/useToast'
 import ConfirmDialog from '@/components/ui/ConfirmDialog.vue'
 import SendNewsletterModal from './SendNewsletterModal.vue'
+import { fetchAllPages } from '@/lib/api'
 
 const { token } = useAuth()
 const apiUrl = import.meta.env.VITE_API_URL
@@ -27,11 +28,10 @@ const isModalOpen = ref(false)
 const fetchSubscribers = async () => {
     loading.value = true
     try {
-        const res = await fetch(`${apiUrl}/api/newsletter-registrations?sort=createdAt:desc&pagination[pageSize]=100`, {
-            headers: { Authorization: `Bearer ${token.value}` }
-        })
-        const data = await res.json()
-        subscribers.value = data.data || []
+        subscribers.value = await fetchAllPages(
+            `/api/newsletter-registrations?sort[0]=createdAt:desc&sort[1]=id:desc`,
+            token.value
+        )
     } catch (err) {
         console.error('Error fetching subscribers:', err)
         toast.error('Errore nel caricamento degli iscritti')

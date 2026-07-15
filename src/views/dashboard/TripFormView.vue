@@ -185,9 +185,10 @@ const saveTrip = async () => {
         if (imageId) payload.image = imageId
         if (galleryIds.length > 0) payload.gallery = galleryIds
 
+        // status=published: senza, Strapi v5 salva solo la bozza e il sito non si aggiorna
         const url = isEdit.value
-            ? `${apiUrl}/api/trips/${tripId.value}`
-            : `${apiUrl}/api/trips`
+            ? `${apiUrl}/api/trips/${tripId.value}?status=published`
+            : `${apiUrl}/api/trips?status=published`
 
         const res = await fetch(url, {
             method: isEdit.value ? 'PUT' : 'POST',

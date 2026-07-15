@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useAuth } from './useAuth'
+import { fetchAllPages } from '@/lib/api'
 
 export interface Post {
     id: number
@@ -31,10 +32,8 @@ export function useBlog() {
         isLoading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/api/posts?populate=*&sort=publishedAt:desc`)
-            if (!response.ok) throw new Error('Failed to fetch posts')
-            const data = await response.json()
-            return data.data as Post[]
+            const data = await fetchAllPages(`/api/posts?populate=*&sort[0]=publishedAt:desc&sort[1]=id:desc`)
+            return data as Post[]
         } catch (err: any) {
             error.value = err.message
             throw err
@@ -74,7 +73,8 @@ export function useBlog() {
         isLoading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/api/posts`, {
+            // status=published: senza, Strapi v5 crea solo la bozza e il post non appare sul blog
+            const response = await fetch(`${API_URL}/api/posts?status=published`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -98,7 +98,8 @@ export function useBlog() {
         isLoading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/api/posts/${documentId}`, {
+            // status=published: senza, Strapi v5 aggiorna solo la bozza e il blog resta stantio
+            const response = await fetch(`${API_URL}/api/posts/${documentId}?status=published`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
